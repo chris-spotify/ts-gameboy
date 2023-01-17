@@ -277,27 +277,35 @@ export class CPU {
         return new uint8(result);
     }
 
-    jump(addr: number, condition: string, isRelative: boolean){
+    conditionMet(condition: string | null){
         switch(condition){
+            case null:
+                return true;
             case 'Z':
-                if (this.flags.zero === 0) return;
+                if (this.flags.zero === 0) return false;
                 break;
             case 'NZ':
-                if (this.flags.zero === 1) return;
+                if (this.flags.zero === 1) return false;
                 break;
             case 'C':
-                if (this.flags.carry === 0) return;
+                if (this.flags.carry === 0) return false;
                 break;
             case 'NC':
-                if (this.flags.carry === 1) return;
+                if (this.flags.carry === 1) return false;
                 break;
         };
+        return true;
+    }
+
+    jump(addr: number, condition: string | null, isRelative: boolean){
+        if (!this.conditionMet(condition)) return false;
         if (isRelative){
             const signedAddr = addr > 127 ? addr - 256 : addr;
             this.pc = new uint16(this.pc.value + signedAddr);
         } else {
             this.pc = new uint16(addr);
         }
+        return true;
     }
 
     getPCByte(){
@@ -838,32 +846,32 @@ export class CPU {
             },
             // LD r8, r8
             '40': () => {
-                this.registers.b.value = this.registers.b.value;
+                this.registers.b.value = new uint8(this.registers.b.value.value);
                 this.cycles++;
                 this.pc.inc();
             },
             '41': () => {
-                this.registers.b.value = this.registers.c.value;
+                this.registers.b.value = new uint8(this.registers.c.value.value);
                 this.cycles++;
                 this.pc.inc();
             },
             '42': () => {
-                this.registers.b.value = this.registers.d.value;
+                this.registers.b.value = new uint8(this.registers.d.value.value);
                 this.cycles++;
                 this.pc.inc();
             },
             '43': () => {
-                this.registers.b.value = this.registers.e.value;
+                this.registers.b.value = new uint8(this.registers.e.value.value);
                 this.cycles++;
                 this.pc.inc();
             },
             '44': () => {
-                this.registers.b.value = this.registers.h.value;
+                this.registers.b.value = new uint8(this.registers.h.value.value);
                 this.cycles++;
                 this.pc.inc();
             },
             '45': () => {
-                this.registers.b.value = this.registers.l.value;
+                this.registers.b.value = new uint8(this.registers.l.value.value);
                 this.cycles++;
                 this.pc.inc();
             },
@@ -873,37 +881,37 @@ export class CPU {
                 this.pc.inc();
             },
             '47': () => {
-                this.registers.b.value = this.registers.a.value;
+                this.registers.b.value = new uint8(this.registers.a.value.value);
                 this.cycles++;
                 this.pc.inc();
             },
             '48': () => {
-                this.registers.c.value = this.registers.b.value;
+                this.registers.c.value = new uint8(this.registers.b.value.value);
                 this.cycles++;
                 this.pc.inc();
             },
             '49': () => {
-                this.registers.c.value = this.registers.c.value;
+                this.registers.c.value = new uint8(this.registers.c.value.value);
                 this.cycles++;
                 this.pc.inc();
             },
             '4A': () => {
-                this.registers.c.value = this.registers.d.value;
+                this.registers.c.value = new uint8(this.registers.d.value.value);
                 this.cycles++;
                 this.pc.inc();
             },
             '4B': () => {
-                this.registers.c.value = this.registers.e.value;
+                this.registers.c.value = new uint8(this.registers.e.value.value);
                 this.cycles++;
                 this.pc.inc();
             },
             '4C': () => {
-                this.registers.c.value = this.registers.h.value;
+                this.registers.c.value = new uint8(this.registers.h.value.value);
                 this.cycles++;
                 this.pc.inc();
             },
             '4D': () => {
-                this.registers.c.value = this.registers.l.value;
+                this.registers.c.value = new uint8(this.registers.l.value.value);
                 this.cycles++;
                 this.pc.inc();
             },
@@ -913,37 +921,37 @@ export class CPU {
                 this.pc.inc();
             },
             '4F': () => {
-                this.registers.c.value = this.registers.a.value;
+                this.registers.c.value = new uint8(this.registers.a.value.value);
                 this.cycles++;
                 this.pc.inc();
             },
             '50': () => {
-                this.registers.d.value = this.registers.b.value;
+                this.registers.d.value = new uint8(this.registers.b.value.value);
                 this.cycles++;
                 this.pc.inc();
             },
             '51': () => {
-                this.registers.d.value = this.registers.c.value;
+                this.registers.d.value = new uint8(this.registers.c.value.value);
                 this.cycles++;
                 this.pc.inc();
             },
             '52': () => {
-                this.registers.d.value = this.registers.d.value;
+                this.registers.d.value = new uint8(this.registers.d.value.value);
                 this.cycles++;
                 this.pc.inc();
             },
             '53': () => {
-                this.registers.d.value = this.registers.e.value;
+                this.registers.d.value = new uint8(this.registers.e.value.value);
                 this.cycles++;
                 this.pc.inc();
             },
             '54': () => {
-                this.registers.d.value = this.registers.h.value;
+                this.registers.d.value = new uint8(this.registers.h.value.value);
                 this.cycles++;
                 this.pc.inc();
             },
             '55': () => {
-                this.registers.d.value = this.registers.l.value;
+                this.registers.d.value = new uint8(this.registers.l.value.value);
                 this.cycles++;
                 this.pc.inc();
             },
@@ -953,37 +961,37 @@ export class CPU {
                 this.pc.inc();
             },
             '57': () => {
-                this.registers.d.value = this.registers.a.value;
+                this.registers.d.value = new uint8(this.registers.a.value.value);
                 this.cycles++;
                 this.pc.inc();
             },
             '58': () => {
-                this.registers.e.value = this.registers.b.value;
+                this.registers.e.value = new uint8(this.registers.b.value.value);
                 this.cycles++;
                 this.pc.inc();
             },
             '59': () => {
-                this.registers.e.value = this.registers.c.value;
+                this.registers.e.value = new uint8(this.registers.c.value.value);
                 this.cycles++;
                 this.pc.inc();
             },
             '5A': () => {
-                this.registers.e.value = this.registers.d.value;
+                this.registers.e.value = new uint8(this.registers.d.value.value);
                 this.cycles++;
                 this.pc.inc();
             },
             '5B': () => {
-                this.registers.e.value = this.registers.e.value;
+                this.registers.e.value = new uint8(this.registers.e.value.value);
                 this.cycles++;
                 this.pc.inc();
             },
             '5C': () => {
-                this.registers.e.value = this.registers.h.value;
+                this.registers.e.value = new uint8(this.registers.h.value.value);
                 this.cycles++;
                 this.pc.inc();
             },
             '5D': () => {
-                this.registers.e.value = this.registers.l.value;
+                this.registers.e.value = new uint8(this.registers.l.value.value);
                 this.cycles++;
                 this.pc.inc();
             },
@@ -993,37 +1001,37 @@ export class CPU {
                 this.pc.inc();
             },
             '5F': () => {
-                this.registers.e.value = this.registers.a.value;
+                this.registers.e.value = new uint8(this.registers.a.value.value);
                 this.cycles++;
                 this.pc.inc();
             },
             '60': () => {
-                this.registers.h.value = this.registers.b.value;
+                this.registers.h.value = new uint8(this.registers.b.value.value);
                 this.cycles++;
                 this.pc.inc();
             },
             '61': () => {
-                this.registers.h.value = this.registers.c.value;
+                this.registers.h.value = new uint8(this.registers.c.value.value);
                 this.cycles++;
                 this.pc.inc();
             },
             '62': () => {
-                this.registers.h.value = this.registers.d.value;
+                this.registers.h.value = new uint8(this.registers.d.value.value);
                 this.cycles++;
                 this.pc.inc();
             },
             '63': () => {
-                this.registers.h.value = this.registers.e.value;
+                this.registers.h.value = new uint8(this.registers.e.value.value);
                 this.cycles++;
                 this.pc.inc();
             },
             '64': () => {
-                this.registers.h.value = this.registers.h.value;
+                this.registers.h.value = new uint8(this.registers.h.value.value);
                 this.cycles++;
                 this.pc.inc();
             },
             '65': () => {
-                this.registers.h.value = this.registers.l.value;
+                this.registers.h.value = new uint8(this.registers.l.value.value);
                 this.cycles++;
                 this.pc.inc();
             },
@@ -1033,37 +1041,37 @@ export class CPU {
                 this.pc.inc();
             },
             '67': () => {
-                this.registers.h.value = this.registers.a.value;
+                this.registers.h.value = new uint8(this.registers.a.value.value);
                 this.cycles++;
                 this.pc.inc();
             },
             '68': () => {
-                this.registers.l.value = this.registers.b.value;
+                this.registers.l.value = new uint8(this.registers.b.value.value);
                 this.cycles++;
                 this.pc.inc();
             },
             '69': () => {
-                this.registers.l.value = this.registers.c.value;
+                this.registers.l.value = new uint8(this.registers.c.value.value);
                 this.cycles++;
                 this.pc.inc();
             },
             '6A': () => {
-                this.registers.l.value = this.registers.d.value;
+                this.registers.l.value = new uint8(this.registers.d.value.value);
                 this.cycles++;
                 this.pc.inc();
             },
             '6B': () => {
-                this.registers.l.value = this.registers.e.value;
+                this.registers.l.value = new uint8(this.registers.e.value.value);
                 this.cycles++;
                 this.pc.inc();
             },
             '6C': () => {
-                this.registers.l.value = this.registers.h.value;
+                this.registers.l.value = new uint8(this.registers.h.value.value);
                 this.cycles++;
                 this.pc.inc();
             },
             '6D': () => {
-                this.registers.l.value = this.registers.l.value;
+                this.registers.l.value = new uint8(this.registers.l.value.value);
                 this.cycles++;
                 this.pc.inc();
             },
@@ -1073,7 +1081,7 @@ export class CPU {
                 this.pc.inc();
             },
             '6F': () => {
-                this.registers.l.value = this.registers.a.value;
+                this.registers.l.value = new uint8(this.registers.a.value.value);
                 this.cycles++;
                 this.pc.inc();
             },
@@ -1115,32 +1123,32 @@ export class CPU {
             },
             // LD A, r8
             '78': () => {
-                this.registers.a.value = this.registers.b.value;
+                this.registers.a.value = new uint8(this.registers.b.value.value);
                 this.cycles++;
                 this.pc.inc();
             },
             '79': () => {
-                this.registers.a.value = this.registers.c.value;
+                this.registers.a.value = new uint8(this.registers.c.value.value);
                 this.cycles++;
                 this.pc.inc();
             },
             '7A': () => {
-                this.registers.a.value = this.registers.d.value;
+                this.registers.a.value = new uint8(this.registers.d.value.value);
                 this.cycles++;
                 this.pc.inc();
             },
             '7B': () => {
-                this.registers.a.value = this.registers.e.value;
+                this.registers.a.value = new uint8(this.registers.e.value.value);
                 this.cycles++;
                 this.pc.inc();
             },
             '7C': () => {
-                this.registers.a.value = this.registers.h.value;
+                this.registers.a.value = new uint8(this.registers.h.value.value);
                 this.cycles++;
                 this.pc.inc();
             },
             '7D': () => {
-                this.registers.a.value = this.registers.l.value;
+                this.registers.a.value = new uint8(this.registers.l.value.value);
                 this.cycles++;
                 this.pc.inc();
             },
@@ -1150,7 +1158,7 @@ export class CPU {
                 this.pc.inc();
             },
             '7F': () => {
-                this.registers.a.value = this.registers.a.value;
+                this.registers.a.value = new uint8(this.registers.a.value.value);
                 this.cycles++;
                 this.pc.inc();
             },
@@ -1326,7 +1334,7 @@ export class CPU {
             },
             // LD SP, HL
             'F9': () => {
-                this.sp = this.registers.hl.value as uint16;
+                this.sp = new uint16(this.registers.hl.value.value);
                 this.cycles+=2;
                 this.pc.inc();
             },
@@ -1343,6 +1351,127 @@ export class CPU {
                 this.registers.a.value = this.memory.r8(this.getPC16());
                 this.cycles+=4;
                 this.pc.inc(2);
+            },
+            // CALL nn
+            'CD': () => {
+                this.pc.inc();
+                const addr = this.getPC16(); // store nn to addr
+                this.pc.inc(2); // move to instruction after CALL
+                this.sp.dec(2); // move up the stack pointer for a new 16-bit value
+                this.memory.w16(this.sp, this.pc); // store next instruction address to new stack location
+                this.jump(addr.value, null, false); // execute unconditional jump to addr
+                this.cycles+=6;
+            },
+            // CALL NZ, nn
+            'C4': () => {
+                this.pc.inc();
+                const addr = this.getPC16();
+                this.pc.inc(2);
+                const nextInst = new uint16(this.pc.value); // if jump is successful, PC will be overwritten
+                if (this.jump(addr.value, 'NZ', false)){
+                    this.sp.dec(2);
+                    this.memory.w16(this.sp, nextInst); // if successful jump, we need to push nextInst to the stack
+                    this.cycles+=6;
+                } else {
+                    this.cycles+=3;
+                }
+            },
+            // CALL NC, nn
+            'D4': () => {
+                this.pc.inc();
+                const addr = this.getPC16();
+                this.pc.inc(2);
+                const nextInst = new uint16(this.pc.value); // if jump is successful, PC will be overwritten
+                if (this.jump(addr.value, 'NC', false)){
+                    this.sp.dec(2);
+                    this.memory.w16(this.sp, nextInst); // if successful jump, we need to push nextInst to the stack
+                    this.cycles+=6;
+                } else {
+                    this.cycles+=3;
+                }
+            },
+            // CALL Z, nn
+            'CC': () => {
+                this.pc.inc();
+                const addr = this.getPC16();
+                this.pc.inc(2);
+                const nextInst = new uint16(this.pc.value); // if jump is successful, PC will be overwritten
+                if (this.jump(addr.value, 'Z', false)){
+                    this.sp.dec(2);
+                    this.memory.w16(this.sp, nextInst); // if successful jump, we need to push nextInst to the stack
+                    this.cycles+=6;
+                } else {
+                    this.cycles+=3;
+                }
+            },
+            // CALL C, nn
+            'DC': () => {
+                this.pc.inc();
+                const addr = this.getPC16();
+                this.pc.inc(2);
+                const nextInst = new uint16(this.pc.value); // if jump is successful, PC will be overwritten
+                if (this.jump(addr.value, 'C', false)){
+                    this.sp.dec(2);
+                    this.memory.w16(this.sp, nextInst); // if successful jump, we need to push nextInst to the stack
+                    this.cycles+=6;
+                } else {
+                    this.cycles+=3;
+                }
+            },
+            // JP nn
+            'C3': () => {
+                this.pc.inc();
+                this.jump(this.getPC16().value, null, false);
+                this.cycles+=4;
+            },
+            // JP NZ, nn
+            'C2': () => {
+                this.pc.inc();
+                const addr = this.getPC16();
+                this.pc.inc(2);
+                if (this.jump(addr.value, 'NZ', false)){
+                    this.cycles+=4;
+                } else {
+                    this.cycles+=3;
+                }
+            },
+            // JP NC, nn
+            'D2': () => {
+                this.pc.inc();
+                const addr = this.getPC16();
+                this.pc.inc(2);
+                if (this.jump(addr.value, 'NC', false)){
+                    this.cycles+=4;
+                } else {
+                    this.cycles+=3;
+                }
+            },
+            // JP Z, nn
+            'CA': () => {
+                this.pc.inc();
+                const addr = this.getPC16();
+                this.pc.inc(2);
+                if (this.jump(addr.value, 'Z', false)){
+                    this.cycles+=4;
+                } else {
+                    this.cycles+=3;
+                }
+            },
+            // JP C, nn
+            'DA': () => {
+                this.pc.inc();
+                const addr = this.getPC16();
+                this.pc.inc(2);
+                if (this.jump(addr.value, 'C', false)){
+                    this.cycles+=4;
+                } else {
+                    this.cycles+=3;
+                }
+            },
+            // JP HL
+            'E9': () => {
+                this.pc = new uint16(this.registers.hl.value.value);
+                this.cycles++;
             },
         };
     }
