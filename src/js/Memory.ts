@@ -66,6 +66,12 @@ export class Memory {
         return source.w8(new uint16(addr.value - source.r[0]), source.m, val);
     }
 
+    w16(addr: uint16, val: uint16){
+        const source = this.getSource(addr);
+        if (!source) return; // unaddressed memory
+        return source.w16(new uint16(addr.value - source.r[0]), source.m, val);
+    }
+
     read8(addr: uint16, source: uint8[]){
         return new uint8(source[addr.value].value);
     }

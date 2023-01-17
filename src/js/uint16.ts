@@ -15,9 +15,11 @@ export class uint16 {
 
     inc(val: number = 1){
         this._value += val;
+        this._value &= 0xFFFF;
     }
     
     dec(val: number = 1){
         this._value -= val;
+        this._value &= 0xFFFF;
     }
 }

@@ -300,12 +300,12 @@ export class CPU {
         }
     }
 
-    hlAsAddr(){
-        return this.memory.r16(this.registers.hl.value as uint16);
-    }
-
     getPCByte(){
         return this.memory.r8(this.pc);
+    }
+
+    getPC16(){
+        return this.memory.r16(this.pc);
     }
 
     generateOpsMap(){
@@ -342,7 +342,7 @@ export class CPU {
                 this.pc.inc();
             },
             '8E': () => {
-                this.registers.a.value = this.add(this.registers.a.value.value, this.memory.r8(this.hlAsAddr()).value, true, true);
+                this.registers.a.value = this.add(this.registers.a.value.value, this.memory.r8(this.registers.hl.value as uint16).value, true, true);
                 this.cycles+=2;
                 this.pc.inc();
             },
@@ -389,7 +389,7 @@ export class CPU {
                 this.pc.inc();
             },
             '86': () => {
-                this.registers.a.value = this.add(this.registers.a.value.value, this.memory.r8(this.hlAsAddr()).value, true, false);
+                this.registers.a.value = this.add(this.registers.a.value.value, this.memory.r8(this.registers.hl.value as uint16).value, true, false);
                 this.cycles+=2;
                 this.pc.inc();
             },
@@ -464,7 +464,7 @@ export class CPU {
                 this.pc.inc();
             },
             'A6': () => {
-                this.registers.a.value = this.and(this.registers.a.value.value, this.memory.r8(this.hlAsAddr()).value);
+                this.registers.a.value = this.and(this.registers.a.value.value, this.memory.r8(this.registers.hl.value as uint16).value);
                 this.cycles+=2;
                 this.pc.inc();
             },
@@ -511,7 +511,7 @@ export class CPU {
                 this.pc.inc();
             },
             'BE': () => {
-                this.sub(this.registers.a.value.value, this.memory.r8(this.hlAsAddr()).value, true, false);
+                this.sub(this.registers.a.value.value, this.memory.r8(this.registers.hl.value as uint16).value, true, false);
                 this.cycles++;
                 this.pc.inc();
             },
@@ -558,7 +558,7 @@ export class CPU {
                 this.pc.inc();
             },
             '35': () => {
-                this.memory.w8(this.hlAsAddr(), this.decrement(this.memory.r8(this.hlAsAddr()).value, true) as uint8);
+                this.memory.w8(this.registers.hl.value as uint16, this.decrement(this.memory.r8(this.registers.hl.value as uint16).value, true) as uint8);
                 this.cycles+=3;
                 this.pc.inc();
             },
@@ -619,7 +619,7 @@ export class CPU {
                 this.pc.inc();
             },
             '34': () => {
-                this.memory.w8(this.hlAsAddr(), this.increment(this.memory.r8(this.hlAsAddr()).value, true) as uint8);
+                this.memory.w8(this.registers.hl.value as uint16, this.increment(this.memory.r8(this.registers.hl.value as uint16).value, true) as uint8);
                 this.cycles+=3;
                 this.pc.inc();
             },
@@ -680,7 +680,7 @@ export class CPU {
                 this.pc.inc();
             },
             'B6': () => {
-                this.registers.a.value = this.or(this.registers.a.value.value, this.memory.r8(this.hlAsAddr()).value);
+                this.registers.a.value = this.or(this.registers.a.value.value, this.memory.r8(this.registers.hl.value as uint16).value);
                 this.cycles+=2;
                 this.pc.inc();
             },
@@ -727,7 +727,7 @@ export class CPU {
                 this.pc.inc();
             },
             '9E': () => {
-                this.registers.a.value = this.sub(this.registers.a.value.value, this.memory.r8(this.hlAsAddr()).value, true, true);
+                this.registers.a.value = this.sub(this.registers.a.value.value, this.memory.r8(this.registers.hl.value as uint16).value, true, true);
                 this.cycles+=2;
                 this.pc.inc();
             },
@@ -774,7 +774,7 @@ export class CPU {
                 this.pc.inc();
             },
             '96': () => {
-                this.registers.a.value = this.sub(this.registers.a.value.value, this.memory.r8(this.hlAsAddr()).value, true, false);
+                this.registers.a.value = this.sub(this.registers.a.value.value, this.memory.r8(this.registers.hl.value as uint16).value, true, false);
                 this.cycles+=2;
                 this.pc.inc();
             },
@@ -821,7 +821,7 @@ export class CPU {
                 this.pc.inc();
             },
             'AE': () => {
-                this.registers.a.value = this.xor(this.registers.a.value.value, this.memory.r8(this.hlAsAddr()).value);
+                this.registers.a.value = this.xor(this.registers.a.value.value, this.memory.r8(this.registers.hl.value as uint16).value);
                 this.cycles+=2;
                 this.pc.inc();
             },
@@ -835,6 +835,514 @@ export class CPU {
                 this.registers.a.value = this.xor(this.registers.a.value.value, this.getPCByte().value);
                 this.cycles+=2;
                 this.pc.inc();
+            },
+            // LD r8, r8
+            '40': () => {
+                this.registers.b.value = this.registers.b.value;
+                this.cycles++;
+                this.pc.inc();
+            },
+            '41': () => {
+                this.registers.b.value = this.registers.c.value;
+                this.cycles++;
+                this.pc.inc();
+            },
+            '42': () => {
+                this.registers.b.value = this.registers.d.value;
+                this.cycles++;
+                this.pc.inc();
+            },
+            '43': () => {
+                this.registers.b.value = this.registers.e.value;
+                this.cycles++;
+                this.pc.inc();
+            },
+            '44': () => {
+                this.registers.b.value = this.registers.h.value;
+                this.cycles++;
+                this.pc.inc();
+            },
+            '45': () => {
+                this.registers.b.value = this.registers.l.value;
+                this.cycles++;
+                this.pc.inc();
+            },
+            '46': () => {
+                this.registers.b.value = this.memory.r8(this.registers.hl.value as uint16);
+                this.cycles+=2;
+                this.pc.inc();
+            },
+            '47': () => {
+                this.registers.b.value = this.registers.a.value;
+                this.cycles++;
+                this.pc.inc();
+            },
+            '48': () => {
+                this.registers.c.value = this.registers.b.value;
+                this.cycles++;
+                this.pc.inc();
+            },
+            '49': () => {
+                this.registers.c.value = this.registers.c.value;
+                this.cycles++;
+                this.pc.inc();
+            },
+            '4A': () => {
+                this.registers.c.value = this.registers.d.value;
+                this.cycles++;
+                this.pc.inc();
+            },
+            '4B': () => {
+                this.registers.c.value = this.registers.e.value;
+                this.cycles++;
+                this.pc.inc();
+            },
+            '4C': () => {
+                this.registers.c.value = this.registers.h.value;
+                this.cycles++;
+                this.pc.inc();
+            },
+            '4D': () => {
+                this.registers.c.value = this.registers.l.value;
+                this.cycles++;
+                this.pc.inc();
+            },
+            '4E': () => {
+                this.registers.c.value = this.memory.r8(this.registers.hl.value as uint16);
+                this.cycles+=2;
+                this.pc.inc();
+            },
+            '4F': () => {
+                this.registers.c.value = this.registers.a.value;
+                this.cycles++;
+                this.pc.inc();
+            },
+            '50': () => {
+                this.registers.d.value = this.registers.b.value;
+                this.cycles++;
+                this.pc.inc();
+            },
+            '51': () => {
+                this.registers.d.value = this.registers.c.value;
+                this.cycles++;
+                this.pc.inc();
+            },
+            '52': () => {
+                this.registers.d.value = this.registers.d.value;
+                this.cycles++;
+                this.pc.inc();
+            },
+            '53': () => {
+                this.registers.d.value = this.registers.e.value;
+                this.cycles++;
+                this.pc.inc();
+            },
+            '54': () => {
+                this.registers.d.value = this.registers.h.value;
+                this.cycles++;
+                this.pc.inc();
+            },
+            '55': () => {
+                this.registers.d.value = this.registers.l.value;
+                this.cycles++;
+                this.pc.inc();
+            },
+            '56': () => {
+                this.registers.d.value = this.memory.r8(this.registers.hl.value as uint16);
+                this.cycles+=2;
+                this.pc.inc();
+            },
+            '57': () => {
+                this.registers.d.value = this.registers.a.value;
+                this.cycles++;
+                this.pc.inc();
+            },
+            '58': () => {
+                this.registers.e.value = this.registers.b.value;
+                this.cycles++;
+                this.pc.inc();
+            },
+            '59': () => {
+                this.registers.e.value = this.registers.c.value;
+                this.cycles++;
+                this.pc.inc();
+            },
+            '5A': () => {
+                this.registers.e.value = this.registers.d.value;
+                this.cycles++;
+                this.pc.inc();
+            },
+            '5B': () => {
+                this.registers.e.value = this.registers.e.value;
+                this.cycles++;
+                this.pc.inc();
+            },
+            '5C': () => {
+                this.registers.e.value = this.registers.h.value;
+                this.cycles++;
+                this.pc.inc();
+            },
+            '5D': () => {
+                this.registers.e.value = this.registers.l.value;
+                this.cycles++;
+                this.pc.inc();
+            },
+            '5E': () => {
+                this.registers.e.value = this.memory.r8(this.registers.hl.value as uint16);
+                this.cycles+=2;
+                this.pc.inc();
+            },
+            '5F': () => {
+                this.registers.e.value = this.registers.a.value;
+                this.cycles++;
+                this.pc.inc();
+            },
+            '60': () => {
+                this.registers.h.value = this.registers.b.value;
+                this.cycles++;
+                this.pc.inc();
+            },
+            '61': () => {
+                this.registers.h.value = this.registers.c.value;
+                this.cycles++;
+                this.pc.inc();
+            },
+            '62': () => {
+                this.registers.h.value = this.registers.d.value;
+                this.cycles++;
+                this.pc.inc();
+            },
+            '63': () => {
+                this.registers.h.value = this.registers.e.value;
+                this.cycles++;
+                this.pc.inc();
+            },
+            '64': () => {
+                this.registers.h.value = this.registers.h.value;
+                this.cycles++;
+                this.pc.inc();
+            },
+            '65': () => {
+                this.registers.h.value = this.registers.l.value;
+                this.cycles++;
+                this.pc.inc();
+            },
+            '66': () => {
+                this.registers.h.value = this.memory.r8(this.registers.hl.value as uint16);
+                this.cycles+=2;
+                this.pc.inc();
+            },
+            '67': () => {
+                this.registers.h.value = this.registers.a.value;
+                this.cycles++;
+                this.pc.inc();
+            },
+            '68': () => {
+                this.registers.l.value = this.registers.b.value;
+                this.cycles++;
+                this.pc.inc();
+            },
+            '69': () => {
+                this.registers.l.value = this.registers.c.value;
+                this.cycles++;
+                this.pc.inc();
+            },
+            '6A': () => {
+                this.registers.l.value = this.registers.d.value;
+                this.cycles++;
+                this.pc.inc();
+            },
+            '6B': () => {
+                this.registers.l.value = this.registers.e.value;
+                this.cycles++;
+                this.pc.inc();
+            },
+            '6C': () => {
+                this.registers.l.value = this.registers.h.value;
+                this.cycles++;
+                this.pc.inc();
+            },
+            '6D': () => {
+                this.registers.l.value = this.registers.l.value;
+                this.cycles++;
+                this.pc.inc();
+            },
+            '6E': () => {
+                this.registers.l.value = this.memory.r8(this.registers.hl.value as uint16);
+                this.cycles+=2;
+                this.pc.inc();
+            },
+            '6F': () => {
+                this.registers.l.value = this.registers.a.value;
+                this.cycles++;
+                this.pc.inc();
+            },
+            // LD (HL), r8
+            '70': () => {
+                this.memory.w8(this.registers.hl.value as uint16, this.registers.b.value as uint8);
+                this.cycles+=3;
+                this.pc.inc();
+            },
+            '71': () => {
+                this.memory.w8(this.registers.hl.value as uint16, this.registers.c.value as uint8);
+                this.cycles+=3;
+                this.pc.inc();
+            },
+            '72': () => {
+                this.memory.w8(this.registers.hl.value as uint16, this.registers.d.value as uint8);
+                this.cycles+=3;
+                this.pc.inc();
+            },
+            '73': () => {
+                this.memory.w8(this.registers.hl.value as uint16, this.registers.e.value as uint8);
+                this.cycles+=3;
+                this.pc.inc();
+            },
+            '74': () => {
+                this.memory.w8(this.registers.hl.value as uint16, this.registers.h.value as uint8);
+                this.cycles+=3;
+                this.pc.inc();
+            },
+            '75': () => {
+                this.memory.w8(this.registers.hl.value as uint16, this.registers.l.value as uint8);
+                this.cycles+=3;
+                this.pc.inc();
+            },
+            '77': () => {
+                this.memory.w8(this.registers.hl.value as uint16, this.registers.a.value as uint8);
+                this.cycles+=3;
+                this.pc.inc();
+            },
+            // LD A, r8
+            '78': () => {
+                this.registers.a.value = this.registers.b.value;
+                this.cycles++;
+                this.pc.inc();
+            },
+            '79': () => {
+                this.registers.a.value = this.registers.c.value;
+                this.cycles++;
+                this.pc.inc();
+            },
+            '7A': () => {
+                this.registers.a.value = this.registers.d.value;
+                this.cycles++;
+                this.pc.inc();
+            },
+            '7B': () => {
+                this.registers.a.value = this.registers.e.value;
+                this.cycles++;
+                this.pc.inc();
+            },
+            '7C': () => {
+                this.registers.a.value = this.registers.h.value;
+                this.cycles++;
+                this.pc.inc();
+            },
+            '7D': () => {
+                this.registers.a.value = this.registers.l.value;
+                this.cycles++;
+                this.pc.inc();
+            },
+            '7E': () => {
+                this.registers.a.value = this.memory.r8(this.registers.hl.value as uint16);
+                this.cycles+=2;
+                this.pc.inc();
+            },
+            '7F': () => {
+                this.registers.a.value = this.registers.a.value;
+                this.cycles++;
+                this.pc.inc();
+            },
+            // LD r16, nn
+            '01': () => {
+                this.pc.inc();
+                this.registers.bc.value = this.getPC16();
+                this.cycles+=3;
+                this.pc.inc(2);
+            },
+            '11': () => {
+                this.pc.inc();
+                this.registers.de.value = this.getPC16();
+                this.cycles+=3;
+                this.pc.inc(2);
+            },
+            '21': () => {
+                this.pc.inc();
+                this.registers.hl.value = this.getPC16();
+                this.cycles+=3;
+                this.pc.inc(2);
+            },
+            '31': () => {
+                this.pc.inc();
+                this.sp = this.getPC16();
+                this.cycles+=3;
+                this.pc.inc(2);
+            },
+            // LD (r16), A
+            '02': () => {
+                this.memory.w8(this.registers.bc.value as uint16, this.registers.a.value as uint8);
+                this.cycles+=2;
+                this.pc.inc();
+            },
+            '12': () => {
+                this.memory.w8(this.registers.de.value as uint16, this.registers.a.value as uint8);
+                this.cycles+=2;
+                this.pc.inc();
+            },
+            // LDI (HLI), A
+            '22': () => {
+                this.memory.w8(this.registers.hl.value as uint16, this.registers.a.value as uint8);
+                this.registers.hl.value.inc(); // inc after
+                this.cycles+=2;
+                this.pc.inc();
+            },
+            // LDD (HLI), A
+            '32': () => {
+                this.memory.w8(this.registers.hl.value as uint16, this.registers.a.value as uint8);
+                this.registers.hl.value.dec(); // dec after
+                this.cycles+=2;
+                this.pc.inc();
+            },
+            // LD r8, n
+            '06': () => {
+                this.pc.inc();
+                this.registers.b.value = this.getPCByte();
+                this.cycles+=2;
+                this.pc.inc();
+            },
+            '0E': () => {
+                this.pc.inc();
+                this.registers.c.value = this.getPCByte();
+                this.cycles+=2;
+                this.pc.inc();
+            },
+            '16': () => {
+                this.pc.inc();
+                this.registers.d.value = this.getPCByte();
+                this.cycles+=2;
+                this.pc.inc();
+            },
+            '1E': () => {
+                this.pc.inc();
+                this.registers.e.value = this.getPCByte();
+                this.cycles+=2;
+                this.pc.inc();
+            },
+            '26': () => {
+                this.pc.inc();
+                this.registers.h.value = this.getPCByte();
+                this.cycles+=2;
+                this.pc.inc();
+            },
+            '2E': () => {
+                this.pc.inc();
+                this.registers.l.value = this.getPCByte();
+                this.cycles+=2;
+                this.pc.inc();
+            },
+            '36': () => {
+                this.pc.inc();
+                this.memory.w8(this.registers.hl.value as uint16, this.getPCByte());
+                this.cycles+=3;
+                this.pc.inc();
+            },
+            '3E': () => {
+                this.pc.inc();
+                this.registers.a.value = this.getPCByte();
+                this.cycles+=2;
+                this.pc.inc();
+            },
+            // LD (nn), SP
+            '08': () => {
+                this.pc.inc();
+                this.memory.w16(this.getPC16(), this.sp);
+                this.cycles+=5;
+                this.pc.inc(2);
+            },
+            // LD A, (r16)
+            '0A': () => {
+                this.registers.a.value = this.memory.r8(this.registers.bc.value as uint16);
+                this.cycles+=2;
+                this.pc.inc();
+            },
+            '1A': () => {
+                this.registers.a.value = this.memory.r8(this.registers.de.value as uint16);
+                this.cycles+=2;
+                this.pc.inc();
+            },
+            // LDI A, (HL)
+            '2A': () => {
+                this.registers.a.value = this.memory.r8(this.registers.hl.value as uint16);
+                this.registers.hl.value.inc(); // inc after
+                this.cycles+=2;
+                this.pc.inc();
+            },
+            // LDD A, (HL)
+            '3A': () => {
+                this.registers.a.value = this.memory.r8(this.registers.hl.value as uint16);
+                this.registers.hl.value.dec(); // dec after
+                this.cycles+=2;
+                this.pc.inc();
+            },
+            // LDH (nn), A
+            'E0': () => {
+                this.pc.inc();
+                const addr = this.getPC16();
+                if (addr.value >= 0xFF00 && addr.value <= 0xFFFF){
+                    this.memory.w8(addr, this.registers.a.value as uint8);
+                }
+                this.cycles+=3;
+                this.pc.inc(2);
+            },
+            // LDH A, (nn)
+            'F0': () => {
+                this.pc.inc();
+                const addr = this.getPC16();
+                if (addr.value >= 0xFF00 && addr.value <= 0xFFFF){
+                    this.registers.a.value = this.memory.r8(addr);
+                }
+                this.cycles+=3;
+                this.pc.inc(2);
+            },
+            // LDH (C), A
+            'E2': () => {
+                this.memory.w8(new uint16(0xFF00 + this.registers.c.value.value), this.registers.a.value as uint8);
+                this.cycles+=2;
+                this.pc.inc();
+            },
+            // LDHL SP, d
+            'F8': () => {
+                this.pc.inc();
+                const val = this.getPCByte().value;
+                const signedVal = val > 127 ? val - 256 : val;
+                this.registers.hl.value = new uint16(this.sp.value + signedVal);
+                this.flags.zero = 0;
+                this.flags.subtraction = 0;
+                this.flags.halfCarry = ((this.sp.value & 0xF) + (signedVal & 0xF) & 0x10) === 0x10 ? 1 : 0;
+                this.flags.carry = (this.sp.value + signedVal > 255) ? 1 : 0;
+                this.cycles+=3;
+                this.pc.inc();
+            },
+            // LD SP, HL
+            'F9': () => {
+                this.sp = this.registers.hl.value as uint16;
+                this.cycles+=2;
+                this.pc.inc();
+            },
+            // LD (nn), A
+            'EA': () => {
+                this.pc.inc();
+                this.memory.w8(this.getPC16(), this.registers.a.value as uint8);
+                this.cycles+=4;
+                this.pc.inc(2);
+            },
+            // LD A, (nn)
+            'FA': () => {
+                this.pc.inc();
+                this.registers.a.value = this.memory.r8(this.getPC16());
+                this.cycles+=4;
+                this.pc.inc(2);
             },
         };
     }
@@ -873,7 +1381,7 @@ export class CPU {
                 this.pc.inc();
             },
             '46': () => {
-                this.testBit(0, this.memory.r8(this.hlAsAddr()).value);
+                this.testBit(0, this.memory.r8(this.registers.hl.value as uint16).value);
                 this.cycles+=3;
                 this.pc.inc();
             },
@@ -913,7 +1421,7 @@ export class CPU {
                 this.pc.inc();
             },
             '4E': () => {
-                this.testBit(1, this.memory.r8(this.hlAsAddr()).value);
+                this.testBit(1, this.memory.r8(this.registers.hl.value as uint16).value);
                 this.cycles+=3;
                 this.pc.inc();
             },
@@ -953,7 +1461,7 @@ export class CPU {
                 this.pc.inc();
             },
             '56': () => {
-                this.testBit(2, this.memory.r8(this.hlAsAddr()).value);
+                this.testBit(2, this.memory.r8(this.registers.hl.value as uint16).value);
                 this.cycles+=3;
                 this.pc.inc();
             },
@@ -993,7 +1501,7 @@ export class CPU {
                 this.pc.inc();
             },
             '5E': () => {
-                this.testBit(3, this.memory.r8(this.hlAsAddr()).value);
+                this.testBit(3, this.memory.r8(this.registers.hl.value as uint16).value);
                 this.cycles+=3;
                 this.pc.inc();
             },
@@ -1033,7 +1541,7 @@ export class CPU {
                 this.pc.inc();
             },
             '66': () => {
-                this.testBit(4, this.memory.r8(this.hlAsAddr()).value);
+                this.testBit(4, this.memory.r8(this.registers.hl.value as uint16).value);
                 this.cycles+=3;
                 this.pc.inc();
             },
@@ -1073,7 +1581,7 @@ export class CPU {
                 this.pc.inc();
             },
             '6E': () => {
-                this.testBit(5, this.memory.r8(this.hlAsAddr()).value);
+                this.testBit(5, this.memory.r8(this.registers.hl.value as uint16).value);
                 this.cycles+=3;
                 this.pc.inc();
             },
@@ -1113,7 +1621,7 @@ export class CPU {
                 this.pc.inc();
             },
             '76': () => {
-                this.testBit(6, this.memory.r8(this.hlAsAddr()).value);
+                this.testBit(6, this.memory.r8(this.registers.hl.value as uint16).value);
                 this.cycles+=3;
                 this.pc.inc();
             },
@@ -1153,7 +1661,7 @@ export class CPU {
                 this.pc.inc();
             },
             '7E': () => {
-                this.testBit(7, this.memory.r8(this.hlAsAddr()).value);
+                this.testBit(7, this.memory.r8(this.registers.hl.value as uint16).value);
                 this.cycles+=3;
                 this.pc.inc();
             },
@@ -1194,7 +1702,7 @@ export class CPU {
                 this.pc.inc();
             },
             '86': () => {
-                this.memory.w8(this.hlAsAddr(), this.resetBit(0, this.memory.r8(this.hlAsAddr()).value));
+                this.memory.w8(this.registers.hl.value as uint16, this.resetBit(0, this.memory.r8(this.registers.hl.value as uint16).value));
                 this.cycles+=4;
                 this.pc.inc();
             },
@@ -1234,7 +1742,7 @@ export class CPU {
                 this.pc.inc();
             },
             '8E': () => {
-                this.memory.w8(this.hlAsAddr(), this.resetBit(1, this.memory.r8(this.hlAsAddr()).value));
+                this.memory.w8(this.registers.hl.value as uint16, this.resetBit(1, this.memory.r8(this.registers.hl.value as uint16).value));
                 this.cycles+=4;
                 this.pc.inc();
             },
@@ -1274,7 +1782,7 @@ export class CPU {
                 this.pc.inc();
             },
             '96': () => {
-                this.memory.w8(this.hlAsAddr(), this.resetBit(2, this.memory.r8(this.hlAsAddr()).value));
+                this.memory.w8(this.registers.hl.value as uint16, this.resetBit(2, this.memory.r8(this.registers.hl.value as uint16).value));
                 this.cycles+=4;
                 this.pc.inc();
             },
@@ -1314,7 +1822,7 @@ export class CPU {
                 this.pc.inc();
             },
             '9E': () => {
-                this.memory.w8(this.hlAsAddr(), this.resetBit(3, this.memory.r8(this.hlAsAddr()).value));
+                this.memory.w8(this.registers.hl.value as uint16, this.resetBit(3, this.memory.r8(this.registers.hl.value as uint16).value));
                 this.cycles+=4;
                 this.pc.inc();
             },
@@ -1354,7 +1862,7 @@ export class CPU {
                 this.pc.inc();
             },
             'A6': () => {
-                this.memory.w8(this.hlAsAddr(), this.resetBit(4, this.memory.r8(this.hlAsAddr()).value));
+                this.memory.w8(this.registers.hl.value as uint16, this.resetBit(4, this.memory.r8(this.registers.hl.value as uint16).value));
                 this.cycles+=4;
                 this.pc.inc();
             },
@@ -1394,7 +1902,7 @@ export class CPU {
                 this.pc.inc();
             },
             'AE': () => {
-                this.memory.w8(this.hlAsAddr(), this.resetBit(5, this.memory.r8(this.hlAsAddr()).value));
+                this.memory.w8(this.registers.hl.value as uint16, this.resetBit(5, this.memory.r8(this.registers.hl.value as uint16).value));
                 this.cycles+=4;
                 this.pc.inc();
             },
@@ -1434,7 +1942,7 @@ export class CPU {
                 this.pc.inc();
             },
             'B6': () => {
-                this.memory.w8(this.hlAsAddr(), this.resetBit(6, this.memory.r8(this.hlAsAddr()).value));
+                this.memory.w8(this.registers.hl.value as uint16, this.resetBit(6, this.memory.r8(this.registers.hl.value as uint16).value));
                 this.cycles+=4;
                 this.pc.inc();
             },
@@ -1474,7 +1982,7 @@ export class CPU {
                 this.pc.inc();
             },
             'BE': () => {
-                this.memory.w8(this.hlAsAddr(), this.resetBit(7, this.memory.r8(this.hlAsAddr()).value));
+                this.memory.w8(this.registers.hl.value as uint16, this.resetBit(7, this.memory.r8(this.registers.hl.value as uint16).value));
                 this.cycles+=4;
                 this.pc.inc();
             },
@@ -1515,7 +2023,7 @@ export class CPU {
                 this.pc.inc();
             },
             'C6': () => {
-                this.memory.w8(this.hlAsAddr(), this.setBit(0, this.memory.r8(this.hlAsAddr()).value));
+                this.memory.w8(this.registers.hl.value as uint16, this.setBit(0, this.memory.r8(this.registers.hl.value as uint16).value));
                 this.cycles+=4;
                 this.pc.inc();
             },
@@ -1555,7 +2063,7 @@ export class CPU {
                 this.pc.inc();
             },
             'CE': () => {
-                this.memory.w8(this.hlAsAddr(), this.setBit(1, this.memory.r8(this.hlAsAddr()).value));
+                this.memory.w8(this.registers.hl.value as uint16, this.setBit(1, this.memory.r8(this.registers.hl.value as uint16).value));
                 this.cycles+=4;
                 this.pc.inc();
             },
@@ -1595,7 +2103,7 @@ export class CPU {
                 this.pc.inc();
             },
             'D6': () => {
-                this.memory.w8(this.hlAsAddr(), this.setBit(2, this.memory.r8(this.hlAsAddr()).value));
+                this.memory.w8(this.registers.hl.value as uint16, this.setBit(2, this.memory.r8(this.registers.hl.value as uint16).value));
                 this.cycles+=4;
                 this.pc.inc();
             },
@@ -1635,7 +2143,7 @@ export class CPU {
                 this.pc.inc();
             },
             'DE': () => {
-                this.memory.w8(this.hlAsAddr(), this.setBit(3, this.memory.r8(this.hlAsAddr()).value));
+                this.memory.w8(this.registers.hl.value as uint16, this.setBit(3, this.memory.r8(this.registers.hl.value as uint16).value));
                 this.cycles+=4;
                 this.pc.inc();
             },
@@ -1675,7 +2183,7 @@ export class CPU {
                 this.pc.inc();
             },
             'E6': () => {
-                this.memory.w8(this.hlAsAddr(), this.setBit(4, this.memory.r8(this.hlAsAddr()).value));
+                this.memory.w8(this.registers.hl.value as uint16, this.setBit(4, this.memory.r8(this.registers.hl.value as uint16).value));
                 this.cycles+=4;
                 this.pc.inc();
             },
@@ -1715,7 +2223,7 @@ export class CPU {
                 this.pc.inc();
             },
             'EE': () => {
-                this.memory.w8(this.hlAsAddr(), this.setBit(5, this.memory.r8(this.hlAsAddr()).value));
+                this.memory.w8(this.registers.hl.value as uint16, this.setBit(5, this.memory.r8(this.registers.hl.value as uint16).value));
                 this.cycles+=4;
                 this.pc.inc();
             },
@@ -1755,7 +2263,7 @@ export class CPU {
                 this.pc.inc();
             },
             'F6': () => {
-                this.memory.w8(this.hlAsAddr(), this.setBit(6, this.memory.r8(this.hlAsAddr()).value));
+                this.memory.w8(this.registers.hl.value as uint16, this.setBit(6, this.memory.r8(this.registers.hl.value as uint16).value));
                 this.cycles+=4;
                 this.pc.inc();
             },
@@ -1795,7 +2303,7 @@ export class CPU {
                 this.pc.inc();
             },
             'FE': () => {
-                this.memory.w8(this.hlAsAddr(), this.setBit(7, this.memory.r8(this.hlAsAddr()).value));
+                this.memory.w8(this.registers.hl.value as uint16, this.setBit(7, this.memory.r8(this.registers.hl.value as uint16).value));
                 this.cycles+=4;
                 this.pc.inc();
             },
@@ -1836,7 +2344,7 @@ export class CPU {
                 this.pc.inc();
             },
             '36': () => {
-                this.memory.w8(this.hlAsAddr(), this.swap(this.memory.r8(this.hlAsAddr()).value));
+                this.memory.w8(this.registers.hl.value as uint16, this.swap(this.memory.r8(this.registers.hl.value as uint16).value));
                 this.cycles+=4;
                 this.pc.inc();
             },
@@ -1877,7 +2385,7 @@ export class CPU {
                 this.pc.inc();
             },
             '16': () => {
-                this.memory.w8(this.hlAsAddr(), this.rotateLeft(this.memory.r8(this.hlAsAddr()).value, true));
+                this.memory.w8(this.registers.hl.value as uint16, this.rotateLeft(this.memory.r8(this.registers.hl.value as uint16).value, true));
                 this.cycles+=4;
                 this.pc.inc();
             },
@@ -1918,7 +2426,7 @@ export class CPU {
                 this.pc.inc();
             },
             '06': () => {
-                this.memory.w8(this.hlAsAddr(), this.rotateLeft(this.memory.r8(this.hlAsAddr()).value, false));
+                this.memory.w8(this.registers.hl.value as uint16, this.rotateLeft(this.memory.r8(this.registers.hl.value as uint16).value, false));
                 this.cycles+=4;
                 this.pc.inc();
             },
@@ -1959,7 +2467,7 @@ export class CPU {
                 this.pc.inc();
             },
             '1E': () => {
-                this.memory.w8(this.hlAsAddr(), this.rotateRight(this.memory.r8(this.hlAsAddr()).value, true));
+                this.memory.w8(this.registers.hl.value as uint16, this.rotateRight(this.memory.r8(this.registers.hl.value as uint16).value, true));
                 this.cycles+=4;
                 this.pc.inc();
             },
@@ -2000,7 +2508,7 @@ export class CPU {
                 this.pc.inc();
             },
             '0E': () => {
-                this.memory.w8(this.hlAsAddr(), this.rotateRight(this.memory.r8(this.hlAsAddr()).value, false));
+                this.memory.w8(this.registers.hl.value as uint16, this.rotateRight(this.memory.r8(this.registers.hl.value as uint16).value, false));
                 this.cycles+=4;
                 this.pc.inc();
             },
@@ -2041,7 +2549,7 @@ export class CPU {
                 this.pc.inc();
             },
             '26': () => {
-                this.memory.w8(this.hlAsAddr(), this.shiftLeftA(this.memory.r8(this.hlAsAddr()).value));
+                this.memory.w8(this.registers.hl.value as uint16, this.shiftLeftA(this.memory.r8(this.registers.hl.value as uint16).value));
                 this.cycles+=4;
                 this.pc.inc();
             },
@@ -2082,7 +2590,7 @@ export class CPU {
                 this.pc.inc();
             },
             '2E': () => {
-                this.memory.w8(this.hlAsAddr(), this.shiftRightA(this.memory.r8(this.hlAsAddr()).value));
+                this.memory.w8(this.registers.hl.value as uint16, this.shiftRightA(this.memory.r8(this.registers.hl.value as uint16).value));
                 this.cycles+=4;
                 this.pc.inc();
             },
@@ -2123,7 +2631,7 @@ export class CPU {
                 this.pc.inc();
             },
             '3E': () => {
-                this.memory.w8(this.hlAsAddr(), this.shiftRightL(this.memory.r8(this.hlAsAddr()).value));
+                this.memory.w8(this.registers.hl.value as uint16, this.shiftRightL(this.memory.r8(this.registers.hl.value as uint16).value));
                 this.cycles+=4;
                 this.pc.inc();
             },
