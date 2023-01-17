@@ -12,4 +12,12 @@ export class uint16 {
     set value(val: number) {
         this._value = val & 0xFFFF; // ignores over/underflow
     }
+
+    inc(val: number = 1){
+        this._value += val;
+    }
+    
+    dec(val: number = 1){
+        this._value -= val;
+    }
 }
