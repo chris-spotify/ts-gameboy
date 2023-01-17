@@ -1473,6 +1473,48 @@ export class CPU {
                 this.pc = new uint16(this.registers.hl.value.value);
                 this.cycles++;
             },
+            // JR n
+            '18': () => {
+                this.pc.inc();
+                this.jump(this.getPCByte().value, null, true);
+                this.cycles+=3;
+            },
+            // JR NZ, n
+            '20': () => {
+                this.pc.inc();
+                if (this.jump(this.getPCByte().value, 'NZ', true)){
+                    this.cycles+=3;
+                } else {
+                    this.cycles+=2;
+                }
+            },
+            // JR NC, n
+            '30': () => {
+                this.pc.inc();
+                if (this.jump(this.getPCByte().value, 'NC', true)){
+                    this.cycles+=3;
+                } else {
+                    this.cycles+=2;
+                }
+            },
+            // JR Z, n
+            '28': () => {
+                this.pc.inc();
+                if (this.jump(this.getPCByte().value, 'Z', true)){
+                    this.cycles+=3;
+                } else {
+                    this.cycles+=2;
+                }
+            },
+            // JR C, n
+            '38': () => {
+                this.pc.inc();
+                if (this.jump(this.getPCByte().value, 'C', true)){
+                    this.cycles+=3;
+                } else {
+                    this.cycles+=2;
+                }
+            },
         };
     }
 
