@@ -22,9 +22,9 @@ export class CPU {
     constructor(_parent){
         this.parent = _parent;
         this.memory = this.parent.Memory;
+        this.reset();
         this.generateOpsMap();
         this.generateCBOpsMap();
-        this.reset();
     }
 
     reset() {
@@ -330,6 +330,14 @@ export class CPU {
         const v = this.memory.r8(this.sp);
         this.sp.inc();
         return v;
+    }
+
+    rst(addr: number){
+        this.pc.inc(); // move to instruction after CALL
+        this.sp.dec(2); // move up the stack pointer for a new 16-bit value
+        this.memory.w16(this.sp, this.pc); // store next instruction address to new stack location
+        this.jump(addr, null, false); // execute unconditional jump to addr
+        this.cycles+=4;
     }
 
     generateOpsMap(){
@@ -1584,67 +1592,35 @@ export class CPU {
             },
             // RST 0
             'C7': () => {
-                this.pc.inc(); // move to instruction after CALL
-                this.sp.dec(2); // move up the stack pointer for a new 16-bit value
-                this.memory.w16(this.sp, this.pc); // store next instruction address to new stack location
-                this.jump(0x00, null, false); // execute unconditional jump to addr
-                this.cycles+=4;
+                this.rst(0x00);
             },
             // RST 10
             'D7': () => {
-                this.pc.inc(); // move to instruction after CALL
-                this.sp.dec(2); // move up the stack pointer for a new 16-bit value
-                this.memory.w16(this.sp, this.pc); // store next instruction address to new stack location
-                this.jump(0x10, null, false); // execute unconditional jump to addr
-                this.cycles+=4;
+                this.rst(0x10);
             },
             // RST 20
             'E7': () => {
-                this.pc.inc(); // move to instruction after CALL
-                this.sp.dec(2); // move up the stack pointer for a new 16-bit value
-                this.memory.w16(this.sp, this.pc); // store next instruction address to new stack location
-                this.jump(0x20, null, false); // execute unconditional jump to addr
-                this.cycles+=4;
+                this.rst(0x20);
             },
             // RST 30
             'F7': () => {
-                this.pc.inc(); // move to instruction after CALL
-                this.sp.dec(2); // move up the stack pointer for a new 16-bit value
-                this.memory.w16(this.sp, this.pc); // store next instruction address to new stack location
-                this.jump(0x30, null, false); // execute unconditional jump to addr
-                this.cycles+=4;
+                this.rst(0x30);
             },
             // RST 8
             'CF': () => {
-                this.pc.inc(); // move to instruction after CALL
-                this.sp.dec(2); // move up the stack pointer for a new 16-bit value
-                this.memory.w16(this.sp, this.pc); // store next instruction address to new stack location
-                this.jump(0x08, null, false); // execute unconditional jump to addr
-                this.cycles+=4;
+                this.rst(0x08);
             },
             // RST 18
             'DF': () => {
-                this.pc.inc(); // move to instruction after CALL
-                this.sp.dec(2); // move up the stack pointer for a new 16-bit value
-                this.memory.w16(this.sp, this.pc); // store next instruction address to new stack location
-                this.jump(0x18, null, false); // execute unconditional jump to addr
-                this.cycles+=4;
+                this.rst(0x18);
             },
             // RST 28
             'EF': () => {
-                this.pc.inc(); // move to instruction after CALL
-                this.sp.dec(2); // move up the stack pointer for a new 16-bit value
-                this.memory.w16(this.sp, this.pc); // store next instruction address to new stack location
-                this.jump(0x28, null, false); // execute unconditional jump to addr
-                this.cycles+=4;
+                this.rst(0x28);
             },
             // RST 38
             'FF': () => {
-                this.pc.inc(); // move to instruction after CALL
-                this.sp.dec(2); // move up the stack pointer for a new 16-bit value
-                this.memory.w16(this.sp, this.pc); // store next instruction address to new stack location
-                this.jump(0x38, null, false); // execute unconditional jump to addr
-                this.cycles+=4;
+                this.rst(0x38);
             },
             // CB-Prefix
             'CB': () => {

@@ -19,14 +19,19 @@ export class Memory {
         [0x4000, 0x7FFF], // bank1 (swappable)
         [0xA000, 0xBFFF], // eram (swappable)
         [0xC000, 0xDFFF], // wram
+        [0xFF00, 0xFF7F], // mmio
         [0xFF80, 0xFFFF], // zram
     ];
+
+    if: uint8;
+    ie: uint8;
 
     bank0: Bank = { m: [], r: this.ranges[0], r8: this.read8, r16: this.read16, w8: this.write8, w16: this.write16 };
     bank1: Bank = { m: [], r: this.ranges[1], r8: this.read8, r16: this.read16, w8: this.write8, w16: this.write16 };
     eram: Bank = { m: [], r: this.ranges[2], r8: this.read8, r16: this.read16, w8: this.write8, w16: this.write16 };
     wram: Bank = { m: [], r: this.ranges[3], r8: this.read8, r16: this.read16, w8: this.write8, w16: this.write16 };
-    zram: Bank = { m: [], r: this.ranges[4], r8: this.read8, r16: this.read16, w8: this.write8, w16: this.write16 };
+    mmio: Bank = { m: [], r: this.ranges[4], r8: this.mmioRead8, r16: this.read16, w8: this.mmioWrite8, w16: this.write16 };
+    zram: Bank = { m: [], r: this.ranges[5], r8: this.read8, r16: this.read16, w8: this.write8, w16: this.write16 };
 
     banks = [this.bank0, this.bank1, this.eram, this.wram, this.zram];
 
@@ -40,12 +45,34 @@ export class Memory {
         for (const bank of this.banks) {
             bank.m = new Array(bank.r[1] - bank.r[0] + 1).fill(new uint8(0)) as uint8[];   
         }
+        this.ie = new uint8(0);
+        this.if = new uint8(0);
     }
 
     getSource(addr: uint16){
         for (const bank of this.banks) {
             if (addr.value >= bank.r[0] && addr.value <= bank.r[1]) return bank;
         }
+    }
+
+    mmioRead8(addr: uint16, source: uint8[]){
+        if (addr.value === 0x0F) return this.if; // interrupt flags
+        return this.read8(addr, source);
+    }
+
+    mmioWrite8(addr: uint16, source: uint8[], val: uint8){
+        if (addr.value === 0x0F) return this.if = val;
+        return this.write8(addr, source, val);
+    }
+
+    zramRead8(addr: uint16, source: uint8[]){
+        if (addr.value === 0x7F) return this.ie; // interrupts enabled
+        return this.read8(addr, source);
+    }
+
+    zramWrite8(addr: uint16, source: uint8[], val: uint8){
+        if (addr.value === 0x7F) return this.ie = val;
+        return this.write8(addr, source, val);
     }
 
     r8(addr: uint16){
