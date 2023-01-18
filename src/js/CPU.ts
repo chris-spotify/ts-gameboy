@@ -12,6 +12,9 @@ export class CPU {
     registers : { [key: string]: Register | CombinedRegister };
     sp = new uint16(0); // stack pointer
     pc = new uint16(0); // program counter
+    ime = 0; // IME (interrupt) register
+    stop = 0; // is CPU stopped
+    halt = 0; // is CPU in halt
     cycles = 0;
     ops = {};
     CBOps = {};
@@ -41,6 +44,7 @@ export class CPU {
         this.registers.hl = new CombinedRegister(this.registers.h as Register, this.registers.l as Register);
         this.sp = new uint16(0);
         this.pc = new uint16(0);
+        this.ime = 1;
     }
 
     // base functions used by similar opcodes
@@ -314,6 +318,18 @@ export class CPU {
 
     getPC16(){
         return this.memory.r16(this.pc);
+    }
+
+    pop16(){
+        const v = this.memory.r16(this.sp);
+        this.sp.inc(2);
+        return v;
+    }
+    
+    pop8(){
+        const v = this.memory.r8(this.sp);
+        this.sp.inc();
+        return v;
     }
 
     generateOpsMap(){
@@ -1514,6 +1530,244 @@ export class CPU {
                 } else {
                     this.cycles+=2;
                 }
+            },
+            // RET NZ
+            'C0': () => {
+                if (this.conditionMet('NZ')){
+                    this.cycles+=5;
+                    this.pc = this.pop16();
+                } else {
+                    this.cycles+=2;
+                    this.pc.inc();
+                }
+            },
+            // RET NC
+            'D0': () => {
+                if (this.conditionMet('NC')){
+                    this.cycles+=5;
+                    this.pc = this.pop16();
+                } else {
+                    this.cycles+=2;
+                    this.pc.inc();
+                }
+            },
+            // RET Z
+            'C8': () => {
+                if (this.conditionMet('Z')){
+                    this.cycles+=5;
+                    this.pc = this.pop16();
+                } else {
+                    this.cycles+=2;
+                    this.pc.inc();
+                }
+            },
+            // RET C
+            'D8': () => {
+                if (this.conditionMet('C')){
+                    this.cycles+=5;
+                    this.pc = this.pop16();
+                } else {
+                    this.cycles+=2;
+                    this.pc.inc();
+                }
+            },
+            // RET
+            'C9': () => {
+                this.cycles+=4;
+                this.pc = this.pop16();
+            },
+            // RETI
+            'D9': () => {
+                this.ime = 1;
+                this.cycles+=4;
+                this.pc = this.pop16();
+            },
+            // RST 0
+            'C7': () => {
+                this.pc.inc(); // move to instruction after CALL
+                this.sp.dec(2); // move up the stack pointer for a new 16-bit value
+                this.memory.w16(this.sp, this.pc); // store next instruction address to new stack location
+                this.jump(0x00, null, false); // execute unconditional jump to addr
+                this.cycles+=4;
+            },
+            // RST 10
+            'D7': () => {
+                this.pc.inc(); // move to instruction after CALL
+                this.sp.dec(2); // move up the stack pointer for a new 16-bit value
+                this.memory.w16(this.sp, this.pc); // store next instruction address to new stack location
+                this.jump(0x10, null, false); // execute unconditional jump to addr
+                this.cycles+=4;
+            },
+            // RST 20
+            'E7': () => {
+                this.pc.inc(); // move to instruction after CALL
+                this.sp.dec(2); // move up the stack pointer for a new 16-bit value
+                this.memory.w16(this.sp, this.pc); // store next instruction address to new stack location
+                this.jump(0x20, null, false); // execute unconditional jump to addr
+                this.cycles+=4;
+            },
+            // RST 30
+            'F7': () => {
+                this.pc.inc(); // move to instruction after CALL
+                this.sp.dec(2); // move up the stack pointer for a new 16-bit value
+                this.memory.w16(this.sp, this.pc); // store next instruction address to new stack location
+                this.jump(0x30, null, false); // execute unconditional jump to addr
+                this.cycles+=4;
+            },
+            // RST 8
+            'CF': () => {
+                this.pc.inc(); // move to instruction after CALL
+                this.sp.dec(2); // move up the stack pointer for a new 16-bit value
+                this.memory.w16(this.sp, this.pc); // store next instruction address to new stack location
+                this.jump(0x08, null, false); // execute unconditional jump to addr
+                this.cycles+=4;
+            },
+            // RST 18
+            'DF': () => {
+                this.pc.inc(); // move to instruction after CALL
+                this.sp.dec(2); // move up the stack pointer for a new 16-bit value
+                this.memory.w16(this.sp, this.pc); // store next instruction address to new stack location
+                this.jump(0x18, null, false); // execute unconditional jump to addr
+                this.cycles+=4;
+            },
+            // RST 28
+            'EF': () => {
+                this.pc.inc(); // move to instruction after CALL
+                this.sp.dec(2); // move up the stack pointer for a new 16-bit value
+                this.memory.w16(this.sp, this.pc); // store next instruction address to new stack location
+                this.jump(0x28, null, false); // execute unconditional jump to addr
+                this.cycles+=4;
+            },
+            // RST 38
+            'FF': () => {
+                this.pc.inc(); // move to instruction after CALL
+                this.sp.dec(2); // move up the stack pointer for a new 16-bit value
+                this.memory.w16(this.sp, this.pc); // store next instruction address to new stack location
+                this.jump(0x38, null, false); // execute unconditional jump to addr
+                this.cycles+=4;
+            },
+            // CB-Prefix
+            'CB': () => {
+                this.pc.inc();
+                this.CBOps[this.getPCByte().value.toString(16)]();
+            },
+            // POP
+            'C1': () => {
+                this.registers.bc.value = this.pop16();
+                this.pc.inc();
+                this.cycles+=3;
+            },
+            'D1': () => {
+                this.registers.de.value = this.pop16();
+                this.pc.inc();
+                this.cycles+=3;
+            },
+            'E1': () => {
+                this.registers.hl.value = this.pop16();
+                this.pc.inc();
+                this.cycles+=3;
+            },
+            'F1': () => {
+                this.flags.value = this.pop8();
+                this.registers.a.value = this.pop8();
+                this.pc.inc();
+                this.cycles+=3;
+            },
+            // PUSH
+            'C5': () => {
+                this.sp.dec(2);
+                this.memory.w16(this.sp, this.registers.bc.value as uint16);
+                this.pc.inc();
+                this.cycles+=4;
+            },
+            'D5': () => {
+                this.sp.dec(2);
+                this.memory.w16(this.sp, this.registers.de.value as uint16);
+                this.pc.inc();
+                this.cycles+=4;
+            },
+            'E5': () => {
+                this.sp.dec(2);
+                this.memory.w16(this.sp, this.registers.hl.value as uint16);
+                this.pc.inc();
+                this.cycles+=4;
+            },
+            'F5': () => {
+                this.sp.dec();
+                this.memory.w8(this.sp, this.registers.a.value as uint8);
+                this.sp.dec();
+                this.memory.w8(this.sp, this.flags.value);
+                this.pc.inc();
+                this.cycles+=4;
+            },
+            // CCF
+            '3F': () => {
+                this.flags.subtraction = 0;
+                this.flags.halfCarry = 0;
+                this.flags.carry = (this.flags.carry) ? 0 : 1;
+                this.pc.inc();
+                this.cycles++;
+            },
+            // CPL
+            '2F': () => {
+                this.registers.a.value = new uint8(~this.registers.a.value.value);
+                this.flags.subtraction = 1;
+                this.flags.halfCarry = 1;
+                this.pc.inc();
+                this.cycles++;
+            },
+            // DAA (idfk, ripped from cpp example found online) -- basically make hex values look like base 10 (0x9, 0xA --> 0x10, 0xB --> 0x11)
+            '27': () => {
+                let val = this.registers.a.value.value;
+
+                if (((val & 0x0F) > 0x09) || (this.flags.halfCarry === 1))  {
+                        val  += 0x06;
+                        this.flags.carry =  (val > 0xFF) ? 1 : 0;
+                        this.flags.halfCarry = ((val & 0xF0) != 0) ? 1 : 0;
+                };
+                if ((val > 0x99) || (this.flags.halfCarry === 1))  {
+                        val  += 0x60;
+                        this.flags.carry = 1;
+                }
+                this.registers.a.value = new uint8(val);
+                this.pc.inc();
+                this.cycles++;
+            },
+            // DI
+            'F3': () => {
+                this.ime = 0;
+                this.pc.inc();
+                this.cycles++;
+            },
+            // EI
+            'FB': () => {
+                this.ime = 1;
+                this.pc.inc();
+                this.cycles++;
+            },
+            // HALT
+            '76': () => {
+                this.halt = 1;
+                this.pc.inc();
+                this.cycles++;
+            },
+            // NOP
+            '00': () => {
+                this.pc.inc();
+                this.cycles++;
+            },
+            // SCF
+            '37': () => {
+                this.flags.subtraction = 0;
+                this.flags.halfCarry = 0;
+                this.flags.carry = 1;
+                this.pc.inc();
+                this.cycles++;
+            },
+            // STOP
+            '10': () => {
+                this.stop = 1;
+                this.pc.inc();
             },
         };
     }

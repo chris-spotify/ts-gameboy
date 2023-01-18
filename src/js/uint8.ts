@@ -2,7 +2,7 @@ export class uint8 {
     private _value: number;
 
     constructor(val: number){
-        this._value = val;
+        this._value = val & 0xFF;;
     }
 
     get value(): number {

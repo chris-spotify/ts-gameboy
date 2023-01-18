@@ -2,7 +2,7 @@ export class uint16 {
     private _value: number;
 
     constructor(val: number){
-        this._value = val;
+        this._value = val & 0xFFFF;
     }
 
     get value(): number {
