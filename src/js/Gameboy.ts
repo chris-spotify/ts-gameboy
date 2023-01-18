@@ -22,6 +22,7 @@ export class Gameboy {
         try {
             const frameCycle = this.CPU.cycles + 17556; // cycles per frame
             while(this.CPU.cycles < frameCycle){
+                
                 if (this.CPU.halt) {
                     this.CPU.cycles++; // keep counting cycles while we're halted
                 } else {
@@ -30,11 +31,16 @@ export class Gameboy {
                     if (opcode.length === 1) opcode = '0'+opcode;
                     this.CPU.ops[opcode]();
                 }
+
                 // check interrupts
                 if (this.CPU.ime && this.Memory.ie && this.Memory.if){
+
                     this.CPU.halt = 0; // an interrupt wakes up from halt
                     this.CPU.ime = 0; // disable other interrupts temporarily (RETI will enable again)
+
+                    // mask enabled interrupts against interrupt flags, break out into active RSTs for interrupt ladder
                     const {rst40, rst48, rst50, rst58, rst60} = this.getFiredInterrupts(new uint8(this.Memory.ie.value & this.Memory.if.value));
+                    
                     // interrupt ladder
                     if (rst40){
                         this.Memory.if = new uint8(this.Memory.if.value & 0xFE); // unset flag
@@ -55,9 +61,10 @@ export class Gameboy {
                         this.CPU.ime = 1; // enable interrupts again if we didn't hit a RST --> RETI
                     }
                 }
-                // check GPU drawing progress
 
-                // check stop value
+                // check GPU drawing progress (draw lines to buffer based on cycle count)
+
+                // check stop value (debugging, stop instruction, should kill run interval)
             }
         } catch(e){
             console.error(e, this.CPU.cycles, this.CPU.registers, this.CPU.flags);
