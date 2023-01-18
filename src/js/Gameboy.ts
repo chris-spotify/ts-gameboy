@@ -8,7 +8,7 @@ export class Gameboy {
     Memory: Memory;
     GPU: GPU;
     Screen: HTMLCanvasElement;
-    run: any;
+    run: any; // interval
 
     constructor(){
         this.GPU = new GPU(this); // GPU first, initialize vram memory range
@@ -21,9 +21,9 @@ export class Gameboy {
     frame(){
         try {
             const frameCycle = this.CPU.cycles + 17556; // cycles per frame
-            do {
+            while(this.CPU.cycles < frameCycle){
                 if (this.CPU.halt) {
-                    this.CPU.cycles++;
+                    this.CPU.cycles++; // keep counting cycles while we're halted
                 } else {
                     // do next op code
                     let opcode = this.Memory.r8(this.CPU.pc).value.toString(16);
@@ -32,7 +32,7 @@ export class Gameboy {
                 }
                 // check interrupts
                 if (this.CPU.ime && this.Memory.ie && this.Memory.if){
-                    this.CPU.halt = 0;
+                    this.CPU.halt = 0; // an interrupt wakes up from halt
                     this.CPU.ime = 0; // disable other interrupts temporarily (RETI will enable again)
                     const {rst40, rst48, rst50, rst58, rst60} = this.getFiredInterrupts(new uint8(this.Memory.ie.value & this.Memory.if.value));
                     // interrupt ladder
@@ -52,15 +52,15 @@ export class Gameboy {
                         this.Memory.if = new uint8(this.Memory.if.value & 0xEF); // unset flag
                         this.CPU.rst(0x60);
                     } else {
-                        this.CPU.ime = 1; // enable interrupts again if we didn't hit a RST
+                        this.CPU.ime = 1; // enable interrupts again if we didn't hit a RST --> RETI
                     }
                 }
                 // check GPU drawing progress
 
                 // check stop value
-            } while (this.CPU.cycles < frameCycle);
+            }
         } catch(e){
-            console.error(e, this.CPU.cycles);
+            console.error(e, this.CPU.cycles, this.CPU.registers, this.CPU.flags);
             clearInterval(this.run);
         }
     }
