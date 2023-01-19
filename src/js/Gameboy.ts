@@ -22,7 +22,7 @@ export class Gameboy {
         try {
             const frameCycle = this.CPU.cycles + 17556; // cycles per frame
             while(this.CPU.cycles < frameCycle){
-                
+                const startCycles = this.CPU.cycles;
                 if (this.CPU.halt) {
                     this.CPU.cycles++; // keep counting cycles while we're halted
                 } else {
@@ -63,11 +63,14 @@ export class Gameboy {
                 }
 
                 // check GPU drawing progress (draw lines to buffer based on cycle count)
+                const instructionCycles = this.CPU.cycles - startCycles;
+                this.GPU.draw(instructionCycles);
 
                 // check stop value (debugging, stop instruction, should kill run interval)
+                if (this.CPU.stop) throw new Error('CPU Stopped.');
             }
         } catch(e){
-            console.error(e, this.CPU.cycles, this.CPU.registers, this.CPU.flags);
+            console.error(e, this.CPU.cycles, this.CPU.registers, this.CPU.flags, this.CPU.ime, this.Memory.ie, this.Memory.if);
             clearInterval(this.run);
         }
     }
