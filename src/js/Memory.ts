@@ -20,9 +20,21 @@ export class Memory {
         [0x8000, 0x9FFF], // vram
         [0xA000, 0xBFFF], // eram (swappable)
         [0xC000, 0xDFFF], // wram
+        [0xFE00, 0xFE9F], // oam
         [0xFF00, 0xFF7F], // mmio
         [0xFF80, 0xFFFF], // zram
     ];
+
+    spriteData: Array<{
+        y: number;
+        x: number;
+        tile: number;
+        palette: number;
+        flipX: boolean;
+        flipY: boolean;
+        priority: number;
+        index: number;
+    }> = new Array(40);
 
     if: uint8;
     ie: uint8;
@@ -32,8 +44,9 @@ export class Memory {
     vram: Bank = { m: [], r: this.ranges[2], r8: this.read8, r16: this.read16, w8: this.vramWrite8, w16: this.write16 };
     eram: Bank = { m: [], r: this.ranges[3], r8: this.read8, r16: this.read16, w8: this.write8, w16: this.write16 };
     wram: Bank = { m: [], r: this.ranges[4], r8: this.read8, r16: this.read16, w8: this.write8, w16: this.write16 };
-    mmio: Bank = { m: [], r: this.ranges[5], r8: this.mmioRead8, r16: this.read16, w8: this.mmioWrite8, w16: this.write16 };
-    zram: Bank = { m: [], r: this.ranges[6], r8: this.read8, r16: this.read16, w8: this.write8, w16: this.write16 };
+    oam: Bank = { m: [], r: this.ranges[5], r8: this.oamRead8, r16: this.read16, w8: this.oamWrite8, w16: this.write16 };
+    mmio: Bank = { m: [], r: this.ranges[6], r8: this.mmioRead8, r16: this.read16, w8: this.mmioWrite8, w16: this.write16 };
+    zram: Bank = { m: [], r: this.ranges[7], r8: this.read8, r16: this.read16, w8: this.write8, w16: this.write16 };
 
     banks = [this.bank0, this.bank1, this.eram, this.wram, this.zram];
 
@@ -47,14 +60,49 @@ export class Memory {
         for (const bank of this.banks) {
             bank.m = new Array(bank.r[1] - bank.r[0] + 1).fill(new uint8(0)) as uint8[];   
         }
+        // set interrupt enabled/flags
         this.ie = new uint8(0);
         this.if = new uint8(0);
+        // reset sprite object data
+        for (let i=0;i<40;i++) this.spriteData[i] = { y: -16, x: -8, tile: 0, palette: 0, flipX: false, flipY: false, priority: 0, index: i };
     }
 
     getSource(addr: uint16){
         for (const bank of this.banks) {
             if (addr.value >= bank.r[0] && addr.value <= bank.r[1]) return bank;
         }
+    }
+
+    buildSpriteData(addr: uint16, val: uint8){
+        const index = val.value >> 2;
+        if (index < 40){
+            switch (addr.value & 3){
+                case 0: // Y
+                    this.spriteData[index].y = val.value-16;
+                    break;
+                case 1: // X
+                    this.spriteData[index].x = val.value-8;
+                    break;
+                case 2: // tile
+                    this.spriteData[index].tile = val.value;
+                    break;
+                case 3: // options
+                    this.spriteData[index].palette = (val.value & 0x10) ? 1 : 0;
+                    this.spriteData[index].flipX = (val.value & 0x20) ? true : false;
+                    this.spriteData[index].flipY = (val.value & 0x40) ? true : false;
+                    this.spriteData[index].priority = (val.value & 0x80) ? 1 : 0;
+                    break;
+            };
+        }
+    }
+
+    oamRead8(addr: uint16, source: uint8[]){
+        return this.read8(addr, source);
+    }
+
+    oamWrite8(addr: uint16, source: uint8[], val: uint8){
+        this.buildSpriteData(addr, val);
+        return this.write8(addr, source, val);
     }
 
     mmioRead8(addr: uint16, source: uint8[]){
