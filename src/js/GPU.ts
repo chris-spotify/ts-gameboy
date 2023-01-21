@@ -26,6 +26,16 @@ export class GPU {
     screenX = 0;
     screenY = 0;
     tileset: Array<Array<Array<number>>> = new Array(384).fill(new Array(8).fill(new Array(8).fill(0)));
+    spriteData: Array<{
+        y: number;
+        x: number;
+        tile: number;
+        palette: number;
+        flipX: boolean;
+        flipY: boolean;
+        priority: number;
+        index: number;
+    }> = new Array(40);
 
     constructor(_parent: Gameboy){
         this.parent = _parent;
@@ -49,6 +59,8 @@ export class GPU {
         this.backgroundTileset = 0;
         this.windowOn = 0;
         this.windowTileset = 0;
+        // reset sprite object data
+        for (let i=0;i<40;i++) this.spriteData[i] = { y: -16, x: -8, tile: 0, palette: 0, flipX: false, flipY: false, priority: 0, index: i };
     }
 
     draw(instructionCycles: number){
@@ -96,29 +108,65 @@ export class GPU {
     }
 
     renderScanline(){
-        let map = this.backgroundMap ? 0x9C00 : 0x9800; // which map offset
-        map += ((this.line + this.screenY) & 255) >> 3; // which line of tiles
-        let line = this.screenX >> 3; // which tile to start with in line
-        let y = (this.line + this.screenY) & 7; // which line of pixels
-        let x = this.screenX & 7; // where in line
-        let screenDataOffset = this.line*160*4; // 4 values per pixel (RGBA)
-        let tile = this.parent.Memory.r8[map + line]; // tile index from background map
-        if (this.backgroundTileset === 1 && tile < 128) tile+=256; // signed tile index to real tile index
+        const rowPixels = [];
 
-        for (let i=0;i<160;i++){
-            const color = this.palette.background[this.tileset[tile][y][x]]; // only allows single value for r, g, and b, consider expanding to array of separate rgb values in future
-            this.screen.data[screenDataOffset] = color;
-            this.screen.data[screenDataOffset+1] = color;
-            this.screen.data[screenDataOffset+2] = color;
-            this.screen.data[screenDataOffset+3] = 255; // alpha always 255
-            screenDataOffset+=4;
+        // draw background
+        if (this.backgroundOn){
+            let map = this.backgroundMap ? 0x9C00 : 0x9800; // which map offset
+            map += ((this.line + this.screenY) & 255) >> 3; // which line of tiles
+            let line = this.screenX >> 3; // which tile to start with in line
+            let y = (this.line + this.screenY) & 7; // which line of pixels
+            let x = this.screenX & 7; // where in line
+            let screenDataOffset = this.line*160*4; // 4 values per pixel (RGBA)
+            let tile = this.parent.Memory.r8[map + line]; // tile index from background map
+            if (this.backgroundTileset === 1 && tile < 128) tile+=256; // signed tile index to real tile index
 
-            x++;
-            if (x === 8){ // move to new tile
-                x = 0;
-                line = (line + 1) & 31;
-                tile = this.parent.Memory.r8[map + line];
-                if (this.backgroundTileset === 1 && tile < 128) tile+=256; // signed tile index to real tile index
+            for (let i=0;i<160;i++){
+                const color = this.palette.background[this.tileset[tile][y][x]]; // only allows single value for r, g, and b, consider expanding to array of separate rgb values in future
+                this.screen.data[screenDataOffset] = color;
+                this.screen.data[screenDataOffset+1] = color;
+                this.screen.data[screenDataOffset+2] = color;
+                this.screen.data[screenDataOffset+3] = 255; // alpha always 255
+                screenDataOffset+=4;
+
+                rowPixels[i] = this.tileset[tile][y][x];
+
+                x++;
+                if (x === 8){ // move to new tile
+                    x = 0;
+                    line = (line + 1) & 31;
+                    tile = this.parent.Memory.r8[map + line];
+                    if (this.backgroundTileset === 1 && tile < 128) tile+=256; // signed tile index to real tile index
+                }
+            }
+        }
+
+        // draw sprites
+        if (this.spritesOn){
+            for (let i=0;i<40;i++){
+                const sprite = this.spriteData[i];
+
+                if (sprite.y <= this.line && (sprite.y + 8) > this.line){
+                    const pal = sprite.palette ? this.palette.object0 : this.palette.object1;
+                    let screenDataOffset = (this.line * 160 + sprite.x) * 4;
+                    let spriteRow;
+                    if (sprite.flipY){
+                        spriteRow = this.tileset[sprite.tile][7 - (this.line - sprite.y)];
+                    } else {
+                        spriteRow = this.tileset[sprite.tile][this.line - sprite.y];
+                    }
+
+                    for (let x=0;x<8;x++){
+                        if ((sprite.x + x) >= 0 && (sprite.x + x) < 160 && spriteRow[x] && (sprite.priority || !rowPixels[sprite.x + x])){
+                            const color = pal[spriteRow[sprite.flipX ? (7-x) : x]];
+                            this.screen.data[screenDataOffset] = color;
+                            this.screen.data[screenDataOffset+1] = color;
+                            this.screen.data[screenDataOffset+2] = color;
+                            this.screen.data[screenDataOffset+3] = 255; // alpha always 255
+                            screenDataOffset+=4;
+                        }
+                    }
+                }
             }
         }
     }
@@ -132,6 +180,29 @@ export class GPU {
         for (let x=0;x<8;x++){
             sx = 1 << (7-x);
             this.tileset[tile][y][x] = ((m[base].value & sx) ? 1 : 0) + ((m[base+1].value & sx) ? 2 : 0);
+        }
+    }
+
+    updateSpriteData(addr: uint16, val: uint8){
+        const index = val.value >> 2;
+        if (index < 40){
+            switch (addr.value & 3){
+                case 0: // Y
+                    this.spriteData[index].y = val.value-16;
+                    break;
+                case 1: // X
+                    this.spriteData[index].x = val.value-8;
+                    break;
+                case 2: // tile
+                    this.spriteData[index].tile = val.value;
+                    break;
+                case 3: // options
+                    this.spriteData[index].palette = (val.value & 0x10) ? 1 : 0;
+                    this.spriteData[index].flipX = (val.value & 0x20) ? true : false;
+                    this.spriteData[index].flipY = (val.value & 0x40) ? true : false;
+                    this.spriteData[index].priority = (val.value & 0x80) ? 1 : 0;
+                    break;
+            };
         }
     }
 }

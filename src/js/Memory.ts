@@ -63,8 +63,6 @@ export class Memory {
         // set interrupt enabled/flags
         this.ie = new uint8(0);
         this.if = new uint8(0);
-        // reset sprite object data
-        for (let i=0;i<40;i++) this.spriteData[i] = { y: -16, x: -8, tile: 0, palette: 0, flipX: false, flipY: false, priority: 0, index: i };
     }
 
     getSource(addr: uint16){
@@ -73,35 +71,12 @@ export class Memory {
         }
     }
 
-    buildSpriteData(addr: uint16, val: uint8){
-        const index = val.value >> 2;
-        if (index < 40){
-            switch (addr.value & 3){
-                case 0: // Y
-                    this.spriteData[index].y = val.value-16;
-                    break;
-                case 1: // X
-                    this.spriteData[index].x = val.value-8;
-                    break;
-                case 2: // tile
-                    this.spriteData[index].tile = val.value;
-                    break;
-                case 3: // options
-                    this.spriteData[index].palette = (val.value & 0x10) ? 1 : 0;
-                    this.spriteData[index].flipX = (val.value & 0x20) ? true : false;
-                    this.spriteData[index].flipY = (val.value & 0x40) ? true : false;
-                    this.spriteData[index].priority = (val.value & 0x80) ? 1 : 0;
-                    break;
-            };
-        }
-    }
-
     oamRead8(addr: uint16, source: uint8[]){
         return this.read8(addr, source);
     }
 
     oamWrite8(addr: uint16, source: uint8[], val: uint8){
-        this.buildSpriteData(addr, val);
+        this.parent.GPU.updateSpriteData(addr, val);
         return this.write8(addr, source, val);
     }
 
