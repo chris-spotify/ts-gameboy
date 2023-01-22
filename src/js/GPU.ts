@@ -6,26 +6,22 @@ export class GPU {
     parent: Gameboy;
     screen: ImageData;
     context: CanvasRenderingContext2D;
-    mode = 2; // OAM Read is first step in GPU clock cycle
-    clock = 0;
-    line = 0;
-    raster = 0;
-    LCDOn = 0; // 0 or 1
-    spritesOn = 0; // 0 or 1
-    spritesLarge = 0; // 0 or 1 (0 = 8x8, 1 = 8x16)
-    backgroundOn = 0; // 0 or 1
-    backgroundMap = 0; // 0 or 1
-    backgroundTileset = 0; // 0 or 1
-    windowOn = 0; // 0 or 1
-    windowTileset = 0; // 0 or 1
-    palette: {
-        background: [255, 192, 96, 0],
-        object0: [255, 192, 96, 0],
-        object1: [255, 192, 96, 0],
-    };
-    screenX = 0;
-    screenY = 0;
-    tileset: Array<Array<Array<number>>> = new Array(384).fill(new Array(8).fill(new Array(8).fill(0)));
+    mode: number; // OAM Read is first step in GPU clock cycle
+    clock: number;
+    line: number;
+    raster: number;
+    LCDOn: number; // 0 or 1
+    spritesOn: number; // 0 or 1
+    spritesLarge: number; // 0 or 1 (0 = 8x8, 1 = 8x16)
+    backgroundOn: number; // 0 or 1
+    backgroundMap: number; // 0 or 1
+    backgroundTileset: number; // 0 or 1
+    windowOn: number; // 0 or 1
+    windowTileset: number; // 0 or 1
+    palette: any;
+    screenX: number;
+    screenY: number;
+    tileset: Array<Array<Array<number>>> = new Array(512).fill(new Array(8).fill(new Array(8).fill(0)));
     spriteData: Array<{
         y: number;
         x: number;
@@ -47,18 +43,26 @@ export class GPU {
         this.screen = this.context.createImageData(160,144);
         this.screen.data.forEach((_,i,a) => a[i] = 255); // white screen
         this.context.putImageData(this.screen, 0, 0); // push to canvas
-        this.mode = 0;
+        this.mode = 2;
         this.clock = 0;
         this.line = 0;
-        this.tileset = new Array(384).fill(new Array(8).fill(new Array(8).fill(0)));
-        this.LCDOn = 0;
-        this.spritesOn = 0;
+        this.raster = 0;
+        this.tileset = new Array(512).fill(new Array(8).fill(new Array(8).fill(0)));
+        this.LCDOn = 1;
+        this.spritesOn = 1;
         this.spritesLarge = 0;
-        this.backgroundOn = 0;
+        this.backgroundOn = 1;
         this.backgroundMap = 0;
         this.backgroundTileset = 0;
         this.windowOn = 0;
         this.windowTileset = 0;
+        this.screenX = 0;
+        this.screenY = 0;
+        this.palette = {
+            background: [255, 192, 96, 0],
+            object0: [255, 192, 96, 0],
+            object1: [255, 192, 96, 0],
+        };
         // reset sprite object data
         for (let i=0;i<40;i++) this.spriteData[i] = { y: -16, x: -8, tile: 0, palette: 0, flipX: false, flipY: false, priority: 0, index: i };
     }
@@ -108,7 +112,7 @@ export class GPU {
     }
 
     renderScanline(){
-        const rowPixels = [];
+        const rowPixels = []; // buffer for storing background data, makes sprite drawing easier
 
         // draw background
         if (this.backgroundOn){
@@ -118,7 +122,7 @@ export class GPU {
             let y = (this.line + this.screenY) & 7; // which line of pixels
             let x = this.screenX & 7; // where in line
             let screenDataOffset = this.line*160*4; // 4 values per pixel (RGBA)
-            let tile = this.parent.Memory.r8[map + line]; // tile index from background map
+            let tile = this.parent.Memory.r8(new uint16(map + line)).value; // tile index from background map
             if (this.backgroundTileset === 1 && tile < 128) tile+=256; // signed tile index to real tile index
 
             for (let i=0;i<160;i++){
@@ -135,7 +139,7 @@ export class GPU {
                 if (x === 8){ // move to new tile
                     x = 0;
                     line = (line + 1) & 31;
-                    tile = this.parent.Memory.r8[map + line];
+                    tile = this.parent.Memory.r8(new uint16(map + line)).value;
                     if (this.backgroundTileset === 1 && tile < 128) tile+=256; // signed tile index to real tile index
                 }
             }
@@ -172,13 +176,12 @@ export class GPU {
     }
 
     updateTile(addr: uint16, m: uint8[]){
-        const base = addr.value & 0x1FFE;
+        const base = (addr.value & 1) ? addr.value - 1 : addr.value;
         const tile = (base >> 4) & 511;
         const y = (base >> 1) & 7;
 
-        let sx;
         for (let x=0;x<8;x++){
-            sx = 1 << (7-x);
+            const sx = 1 << (7-x);
             this.tileset[tile][y][x] = ((m[base].value & sx) ? 1 : 0) + ((m[base+1].value & sx) ? 2 : 0);
         }
     }

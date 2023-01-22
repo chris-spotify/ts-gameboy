@@ -1,18 +1,20 @@
 import { uint8 } from "./uint8.js";
 
 export class CPUFlags {
-    zero = 0;
-    subtraction = 0;
-    halfCarry = 0;
-    carry = 0;
+    zero: number;
+    subtraction: number;
+    halfCarry: number;
+    carry: number;
     
-    constructor(){}
+    constructor(){
+        this.reset();
+    }
 
     reset(){
-        this.zero = 0;
+        this.zero = 1;
         this.subtraction = 0;
-        this.halfCarry = 0;
-        this.carry = 0;
+        this.halfCarry = 1;
+        this.carry = 1;
     }
 
     set value(val: uint8){

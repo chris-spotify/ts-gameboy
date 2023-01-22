@@ -2,6 +2,7 @@ import { CPU } from "./CPU.js";
 import { Memory } from "./Memory.js";
 import { GPU } from "./GPU.js";
 import { uint8 } from "./uint8.js";
+import { uint16 } from "./uint16.js";
 
 export class Gameboy {
     CPU: CPU;
@@ -11,10 +12,23 @@ export class Gameboy {
     run: any; // interval
 
     constructor(){
+        this.Screen = document.getElementById("screen") as HTMLCanvasElement;
         this.GPU = new GPU(this); // GPU first, initialize vram memory range
         this.Memory = new Memory(this); // Memory 2nd, CPU relies on Memory existing, Memory relies on GPU vram memory existing
         this.CPU = new CPU(this); // CPU last
-        this.Screen = document.getElementById("screen") as HTMLCanvasElement;
+        this.CPU.debug = true;
+        const input = document.getElementById("game") as HTMLInputElement;
+        input.addEventListener('change', () => { this.loadCartridge(input); });
+    }
+
+    async loadCartridge(input: HTMLInputElement)
+    {
+        const file = input.files[0];
+        const buffer = await file.arrayBuffer();
+        const bytes = new Uint8Array(buffer);
+        for (let i=0;i<bytes.length;i++){
+            this.Memory.w8(new uint16(i), new uint8(bytes[i]));
+        }
         this.run = setInterval(this.frame.bind(this), 1); // gotta go fast! - sanic, 1992
     }
 
@@ -27,9 +41,25 @@ export class Gameboy {
                     this.CPU.cycles++; // keep counting cycles while we're halted
                 } else {
                     // do next op code
-                    let opcode = this.Memory.r8(this.CPU.pc).value.toString(16);
-                    if (opcode.length === 1) opcode = '0'+opcode;
+                    const opcode = this.Memory.r8(this.CPU.pc).value.toString(16).padStart(2,'0').toUpperCase();
                     this.CPU.ops[opcode]();
+                    if (this.CPU.debug)
+                        console.log(`
+                        opcode: ${opcode}, ${this.CPU.debugLogs.pop()}, 
+                        flags: ${JSON.stringify(this.CPU.flags)},
+                        BC: ${this.CPU.registers.bc.value.value.toString(16).padStart(4, '0')},
+                        DE: ${this.CPU.registers.de.value.value.toString(16).padStart(4, '0')},
+                        HL: ${this.CPU.registers.hl.value.value.toString(16).padStart(4, '0')},
+                        SP: ${this.CPU.sp.value.toString(16).padStart(4, '0')},
+                        PC: ${this.CPU.pc.value.toString(16).padStart(4, '0')},
+                        A: ${this.CPU.registers.a.value.value.toString(16).padStart(2, '0')}, 
+                        B: ${this.CPU.registers.b.value.value.toString(16).padStart(2, '0')}, 
+                        C: ${this.CPU.registers.c.value.value.toString(16).padStart(2, '0')},
+                        D: ${this.CPU.registers.d.value.value.toString(16).padStart(2, '0')},
+                        E: ${this.CPU.registers.e.value.value.toString(16).padStart(2, '0')},
+                        H: ${this.CPU.registers.h.value.value.toString(16).padStart(2, '0')},
+                        L: ${this.CPU.registers.l.value.value.toString(16).padStart(2, '0')},
+                        `);
                 }
 
                 // check interrupts

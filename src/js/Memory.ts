@@ -41,14 +41,14 @@ export class Memory {
 
     bank0: Bank = { m: [], r: this.ranges[0], r8: this.read8, r16: this.read16, w8: this.write8, w16: this.write16 };
     bank1: Bank = { m: [], r: this.ranges[1], r8: this.read8, r16: this.read16, w8: this.write8, w16: this.write16 };
-    vram: Bank = { m: [], r: this.ranges[2], r8: this.read8, r16: this.read16, w8: this.vramWrite8, w16: this.write16 };
+    vram: Bank = { m: [], r: this.ranges[2], r8: this.read8, r16: this.read16, w8: this.vramWrite8.bind(this), w16: this.write16 };
     eram: Bank = { m: [], r: this.ranges[3], r8: this.read8, r16: this.read16, w8: this.write8, w16: this.write16 };
     wram: Bank = { m: [], r: this.ranges[4], r8: this.read8, r16: this.read16, w8: this.write8, w16: this.write16 };
-    oam: Bank = { m: [], r: this.ranges[5], r8: this.oamRead8, r16: this.read16, w8: this.oamWrite8, w16: this.write16 };
-    mmio: Bank = { m: [], r: this.ranges[6], r8: this.mmioRead8, r16: this.read16, w8: this.mmioWrite8, w16: this.write16 };
+    oam: Bank = { m: [], r: this.ranges[5], r8: this.oamRead8.bind(this), r16: this.read16, w8: this.oamWrite8.bind(this), w16: this.write16 };
+    mmio: Bank = { m: [], r: this.ranges[6], r8: this.mmioRead8.bind(this), r16: this.read16, w8: this.mmioWrite8.bind(this), w16: this.write16 };
     zram: Bank = { m: [], r: this.ranges[7], r8: this.read8, r16: this.read16, w8: this.write8, w16: this.write16 };
 
-    banks = [this.bank0, this.bank1, this.eram, this.wram, this.zram];
+    banks = [this.bank0, this.bank1, this.vram, this.eram, this.wram, this.oam, this.mmio, this.zram];
 
     constructor(_parent: Gameboy){
         this.parent = _parent;
