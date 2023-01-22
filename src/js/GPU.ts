@@ -48,10 +48,10 @@ export class GPU {
         this.line = 0;
         this.raster = 0;
         this.tileset = new Array(512).fill(new Array(8).fill(new Array(8).fill(0)));
-        this.LCDOn = 1;
-        this.spritesOn = 1;
+        this.LCDOn = 0;
+        this.spritesOn = 0;
         this.spritesLarge = 0;
-        this.backgroundOn = 1;
+        this.backgroundOn = 0;
         this.backgroundMap = 0;
         this.backgroundTileset = 0;
         this.windowOn = 0;

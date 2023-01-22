@@ -32,20 +32,20 @@ export class CPU {
     reset() {
         this.flags = new CPUFlags();
         this.registers = {
-            a: new Register(new uint8(0x01)),
+            a: new Register(new uint8(0)),
             b: new Register(new uint8(0)),
-            c: new Register(new uint8(0x13)),
+            c: new Register(new uint8(0)),
             d: new Register(new uint8(0)),
-            e: new Register(new uint8(0xD8)),
-            h: new Register(new uint8(0x01)),
-            l: new Register(new uint8(0x4D)),
+            e: new Register(new uint8(0)),
+            h: new Register(new uint8(0)),
+            l: new Register(new uint8(0)),
         };
         // build combined registers
         this.registers.bc = new CombinedRegister(this.registers.c as Register, this.registers.b as Register);
         this.registers.de = new CombinedRegister(this.registers.e as Register, this.registers.d as Register);
         this.registers.hl = new CombinedRegister(this.registers.l as Register, this.registers.h as Register);
         this.sp = new uint16(0xFFFE);
-        this.pc = new uint16(0x100);
+        this.pc = new uint16(0);
         this.ime = 1;
     }
 
@@ -1504,27 +1504,27 @@ export class CPU {
                 this.pc.inc();
                 if (this.debug) this.debugLogs.push('LDD (BC)');
             },
-            // LDH (nn), A
+            // LDH (n), A
             'E0': () => {
                 this.pc.inc();
-                const addr = this.getPC16();
-                if (addr.value >= 0xFF00 && addr.value <= 0xFFFF){
-                    this.memory.w8(addr, this.registers.a.value as uint8);
+                const addr = this.getPCByte();
+                if (0xFF00 + addr.value <= 0xFFFF){
+                    this.memory.w8(new uint16(0xFF00 + addr.value), this.registers.a.value as uint8);
                 }
                 this.cycles+=3;
-                this.pc.inc(2);
-                if (this.debug) this.debugLogs.push('LDH (nn), A');
+                this.pc.inc();
+                if (this.debug) this.debugLogs.push(`LDH (0xFF00 + ${addr.value.toString(16).padStart(2,'0')}), A`);
             },
-            // LDH A, (nn)
+            // LDH A, (n)
             'F0': () => {
                 this.pc.inc();
-                const addr = this.getPC16();
-                if (addr.value >= 0xFF00 && addr.value <= 0xFFFF){
-                    this.registers.a.value = this.memory.r8(addr);
+                const addr = this.getPCByte();
+                if (0xFF00 + addr.value <= 0xFFFF){
+                    this.registers.a.value = this.memory.r8(new uint16(0xFF00 + addr.value));
                 }
                 this.cycles+=3;
-                this.pc.inc(2);
-                if (this.debug) this.debugLogs.push('LDH A, (nn)');
+                this.pc.inc();
+                if (this.debug) this.debugLogs.push(`LDH A, (0xFF00 + ${addr.value.toString(16).padStart(2,'0')})`);
             },
             // LDH (C), A
             'E2': () => {
@@ -1644,7 +1644,9 @@ export class CPU {
             // JP nn
             'C3': () => {
                 this.pc.inc();
-                this.jump(this.getPC16().value, null, false);
+                const addr = this.getPC16();
+                this.pc.inc(2);
+                this.jump(addr.value, null, false);
                 this.cycles+=4;
                 if (this.debug) this.debugLogs.push('JP nn');
             },
@@ -1859,8 +1861,9 @@ export class CPU {
             // CB-Prefix
             'CB': () => {
                 this.pc.inc();
-                this.CBOps[this.getPCByte().value.toString(16)]();
-                if (this.debug) this.debugLogs.push('CB');
+                const op = this.getPCByte().value.toString(16).padStart(2,'0').toUpperCase();
+                this.CBOps[op]();
+                if (this.debug) this.debugLogs.push(`CB ${op}`);
             },
             // POP
             'C1': () => {
@@ -1996,6 +1999,20 @@ export class CPU {
                 this.stop = 1;
                 this.pc.inc();
                 if (this.debug) this.debugLogs.push('STOP');
+            },
+            // RLC A (dupe)
+            '07': () => {
+                this.registers.a.value = this.rotateLeft(this.registers.a.value.value, false);
+                this.cycles+=2;
+                this.pc.inc();
+                if (this.debug) this.debugLogs.push('RLC A');
+            },
+            // RL A (dupe)
+            '17': () => {
+                this.registers.a.value = this.rotateLeft(this.registers.a.value.value, true);
+                this.cycles+=2;
+                this.pc.inc();
+                if (this.debug) this.debugLogs.push('RL A');
             },
         };
     }

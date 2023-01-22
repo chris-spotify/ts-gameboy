@@ -24,18 +24,30 @@ export class Gameboy {
     async loadCartridge(input: HTMLInputElement)
     {
         const file = input.files[0];
-        const buffer = await file.arrayBuffer();
-        const bytes = new Uint8Array(buffer);
-        for (let i=0;i<bytes.length;i++){
-            this.Memory.w8(new uint16(i), new uint8(bytes[i]));
-        }
-        this.run = setInterval(this.frame.bind(this), 1); // gotta go fast! - sanic, 1992
+        const reader = new FileReader();
+        reader.onload = (e: any) => {
+            const result = reader.result as ArrayBuffer;
+            const bytes = new Uint8Array(result);
+            let line = '';
+            for (let i=0;i<Math.min(0x8000, bytes.length);i++){
+                // if (this.CPU.debug){
+                //     if (i%16 === 0 && i > 0){
+                //         console.log(`${(i-16).toString(16).padStart(4,'0')}: ${line}`);
+                //         line = '';
+                //     }
+                //     line += bytes[i].toString(16).padStart(2,'0') + ' ';
+                // }
+                this.Memory.w8(new uint16(i), new uint8(bytes[i]));
+            }
+            this.run = setInterval(this.frame.bind(this), 1); // gotta go fast! - sanic, 1992
+        };
+        reader.readAsArrayBuffer(file);
     }
 
     frame(){
         try {
             const frameCycle = this.CPU.cycles + 17556; // cycles per frame
-            while(this.CPU.cycles < frameCycle){
+            do{
                 const startCycles = this.CPU.cycles;
                 if (this.CPU.halt) {
                     this.CPU.cycles++; // keep counting cycles while we're halted
@@ -98,7 +110,9 @@ export class Gameboy {
 
                 // check stop value (debugging, stop instruction, should kill run interval)
                 if (this.CPU.stop) throw new Error('CPU Stopped.');
-            }
+
+                if (this.CPU.debug && this.CPU.cycles > 200000) throw new Error('Debug stop');
+            } while(this.CPU.cycles < frameCycle);
         } catch(e){
             console.error(e, this.CPU.cycles, this.CPU.registers, this.CPU.flags, this.CPU.ime, this.Memory.ie, this.Memory.if);
             clearInterval(this.run);
