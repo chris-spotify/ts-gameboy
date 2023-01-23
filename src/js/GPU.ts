@@ -9,6 +9,7 @@ export class GPU {
     mode: number; // OAM Read is first step in GPU clock cycle
     clock: number;
     line: number;
+    curScan: number;
     raster: number;
     LCDOn: number; // 0 or 1
     spritesOn: number; // 0 or 1
@@ -46,6 +47,7 @@ export class GPU {
         this.mode = 2;
         this.clock = 0;
         this.line = 0;
+        this.curScan = 0;
         this.raster = 0;
         this.tileset = new Array(512).fill(new Array(8).fill(new Array(8).fill(0)));
         this.LCDOn = 0;
@@ -74,6 +76,7 @@ export class GPU {
                 if (this.clock >= 51){
                     this.clock = 0; // restart GPU clock cycle
                     this.line++; // inc line number
+                    this.curScan+=640;
 
                     if (this.line === 143){ // last line, go to vblank and draw to canvas
                         this.mode = 1;
@@ -92,6 +95,7 @@ export class GPU {
                     if (this.line > 153){ // restart render
                         this.mode = 2; // first step of the cycle is OAM Read
                         this.line = 0; // back to top
+                        this.curScan = 0; // reset curScan
                     }
                 }
                 break;
@@ -113,62 +117,101 @@ export class GPU {
 
     renderScanline(){
         const rowPixels = []; // buffer for storing background data, makes sprite drawing easier
+        if (this.LCDOn){
+            // draw background
+            if (this.backgroundOn){
+                let linebase = this.curScan; // curscan equivalent
+                let mapbase = this.backgroundMap ? 0x1C00 : 0x1800;
+                mapbase += ((((this.line + this.screenY)&255)>>3)<<5);
+                let y = (this.line + this.screenY)&7;
+                let x = this.screenX&7;
+                let t = (this.screenX>>3)&31;
+                let w = 160;
 
-        // draw background
-        if (this.backgroundOn){
-            let map = this.backgroundMap ? 0x9C00 : 0x9800; // which map offset
-            map += ((this.line + this.screenY) & 255) >> 3; // which line of tiles
-            let line = this.screenX >> 3; // which tile to start with in line
-            let y = (this.line + this.screenY) & 7; // which line of pixels
-            let x = this.screenX & 7; // where in line
-            let screenDataOffset = this.line*160*4; // 4 values per pixel (RGBA)
-            let tile = this.parent.Memory.r8(new uint16(map + line)).value; // tile index from background map
-            if (this.backgroundTileset === 1 && tile < 128) tile+=256; // signed tile index to real tile index
-
-            for (let i=0;i<160;i++){
-                const color = this.palette.background[this.tileset[tile][y][x]]; // only allows single value for r, g, and b, consider expanding to array of separate rgb values in future
-                this.screen.data[screenDataOffset] = color;
-                this.screen.data[screenDataOffset+1] = color;
-                this.screen.data[screenDataOffset+2] = color;
-                this.screen.data[screenDataOffset+3] = 255; // alpha always 255
-                screenDataOffset+=4;
-
-                rowPixels[i] = this.tileset[tile][y][x];
-
-                x++;
-                if (x === 8){ // move to new tile
-                    x = 0;
-                    line = (line + 1) & 31;
-                    tile = this.parent.Memory.r8(new uint16(map + line)).value;
-                    if (this.backgroundTileset === 1 && tile < 128) tile+=256; // signed tile index to real tile index
+                if (this.backgroundTileset){
+                    let tile = this.parent.Memory.vram.m[mapbase+t].value; // direct memory access
+                    if (tile<128) tile = 256+tile;
+                    let tilerow = this.tileset[tile][y];
+                    do {
+                        rowPixels[160-x] = tilerow[x];
+                        this.screen.data[linebase] = this.palette.background[tilerow[x]];
+                        this.screen.data[linebase+1] = this.palette.background[tilerow[x]];
+                        this.screen.data[linebase+2] = this.palette.background[tilerow[x]];
+                        this.screen.data[linebase+3] = 255; // fixed alpha
+                        x++;
+                        if (x===8){
+                            t = (t+1)&31;
+                            x = 0;
+                            tile = this.parent.Memory.vram.m[mapbase+t].value;
+                            if (tile<128) tile=256+tile;
+                            tilerow = this.tileset[tile][y];
+                            linebase+=4;
+                        }
+                    } while (--w);
+                } else {
+                    let tilerow = this.tileset[this.parent.Memory.vram[mapbase+t].value][y];
+                    do {
+                        rowPixels[160-x] = tilerow[x];
+                        this.screen.data[linebase] = this.palette.background[tilerow[x]];
+                        this.screen.data[linebase+1] = this.palette.background[tilerow[x]];
+                        this.screen.data[linebase+2] = this.palette.background[tilerow[x]];
+                        this.screen.data[linebase+3] = 255; // fixed alpha
+                        x++;
+                        if (x===8){
+                            t = (t+1)&31;
+                            x = 0;
+                            tilerow = this.tileset[this.parent.Memory.vram[mapbase+t].value][y];
+                        }
+                        linebase+=4;
+                    } while(--w);
                 }
             }
-        }
 
-        // draw sprites
-        if (this.spritesOn){
-            for (let i=0;i<40;i++){
-                const sprite = this.spriteData[i];
-
-                if (sprite.y <= this.line && (sprite.y + 8) > this.line){
-                    const pal = sprite.palette ? this.palette.object0 : this.palette.object1;
-                    let screenDataOffset = (this.line * 160 + sprite.x) * 4;
-                    let spriteRow;
-                    if (sprite.flipY){
-                        spriteRow = this.tileset[sprite.tile][7 - (this.line - sprite.y)];
-                    } else {
-                        spriteRow = this.tileset[sprite.tile][this.line - sprite.y];
-                    }
-
-                    for (let x=0;x<8;x++){
-                        if ((sprite.x + x) >= 0 && (sprite.x + x) < 160 && spriteRow[x] && (sprite.priority || !rowPixels[sprite.x + x])){
-                            const color = pal[spriteRow[sprite.flipX ? (7-x) : x]];
-                            this.screen.data[screenDataOffset] = color;
-                            this.screen.data[screenDataOffset+1] = color;
-                            this.screen.data[screenDataOffset+2] = color;
-                            this.screen.data[screenDataOffset+3] = 255; // alpha always 255
-                            screenDataOffset+=4;
+            // draw sprites
+            if (this.spritesOn){
+                let count = 0;
+                let linebase = this.curScan; //curscan equivalent
+                let tilerow;
+                for (let i=0;i<40;i++){
+                    const sprite = this.spriteData[i];
+                    if (sprite.y <= this.line && (sprite.y+8) > this.line){
+                        if (sprite.flipY){
+                            tilerow = this.tileset[sprite.tile][7-(this.line - sprite.y)];
+                        } else {
+                            tilerow = this.tileset[sprite.tile][this.line - sprite.y];
                         }
+
+                        const pal = sprite.palette ? this.palette.object0 : this.palette.object1;
+
+                        linebase = (this.line * 160 + sprite.x) * 4;
+
+                        if (sprite.flipX){
+                            for (let x=0;x<8;x++){
+                                if (sprite.x + x >= 0 && sprite.x + x < 160){
+                                    if (tilerow[7-x] && (sprite.priority || !rowPixels[x])){
+                                        this.screen.data[linebase] = pal[tilerow[7-x]];
+                                        this.screen.data[linebase+1] = pal[tilerow[7-x]];
+                                        this.screen.data[linebase+2] = pal[tilerow[7-x]];
+                                        this.screen.data[linebase+3] = 255; // fixed alpha
+                                    }
+                                }
+                                linebase+=4;
+                            }
+                        } else {
+                            for (let x=0;x<8;x++){
+                                if (sprite.x + x >= 0 && sprite.x + x < 160){
+                                    if (tilerow[x] && (sprite.priority || rowPixels[x])){
+                                        this.screen.data[linebase] = pal[tilerow[x]];
+                                        this.screen.data[linebase+1] = pal[tilerow[x]];
+                                        this.screen.data[linebase+2] = pal[tilerow[x]];
+                                        this.screen.data[linebase+3] = 255; // fixed alpha
+                                    }
+                                }
+                                linebase+=4;
+                            }
+                        }
+                        count++;
+                        if (count > 10) break; // only render 10 sprites per line max
                     }
                 }
             }

@@ -16,9 +16,19 @@ export class Gameboy {
         this.GPU = new GPU(this); // GPU first, initialize vram memory range
         this.Memory = new Memory(this); // Memory 2nd, CPU relies on Memory existing, Memory relies on GPU vram memory existing
         this.CPU = new CPU(this); // CPU last
-        this.CPU.debug = true;
+        // this.CPU.debug = true;
         const input = document.getElementById("game") as HTMLInputElement;
         input.addEventListener('change', () => { this.loadCartridge(input); });
+        document.addEventListener('keydown', (key) => {
+            if (key.keyCode === 32){
+                this.CPU.debug = true;
+            }
+        });
+        document.addEventListener('keyup', (key) => {
+            if (key.keyCode === 32){
+                this.CPU.debug = false;
+            }
+        });
     }
 
     async loadCartridge(input: HTMLInputElement)
@@ -28,7 +38,7 @@ export class Gameboy {
         reader.onload = (e: any) => {
             const result = reader.result as ArrayBuffer;
             const bytes = new Uint8Array(result);
-            let line = '';
+            // let line = '';
             for (let i=0;i<Math.min(0x8000, bytes.length);i++){
                 // if (this.CPU.debug){
                 //     if (i%16 === 0 && i > 0){
@@ -54,8 +64,9 @@ export class Gameboy {
                 } else {
                     // do next op code
                     const opcode = this.Memory.r8(this.CPU.pc).value.toString(16).padStart(2,'0').toUpperCase();
+                    if (!this.CPU.ops[opcode]) throw new Error(`Missing opcode: ${opcode}`);
                     this.CPU.ops[opcode]();
-                    if (this.CPU.debug)
+                    if (this.CPU.debug && this.CPU.pc.value >= 0xF4)
                         console.log(`
                         opcode: ${opcode}, ${this.CPU.debugLogs.pop()}, 
                         flags: ${JSON.stringify(this.CPU.flags)},
@@ -111,7 +122,7 @@ export class Gameboy {
                 // check stop value (debugging, stop instruction, should kill run interval)
                 if (this.CPU.stop) throw new Error('CPU Stopped.');
 
-                if (this.CPU.debug && this.CPU.cycles > 200000) throw new Error('Debug stop');
+                // if (this.CPU.debug && this.CPU.cycles > 4500000) throw new Error('Debug stop');
             } while(this.CPU.cycles < frameCycle);
         } catch(e){
             console.error(e, this.CPU.cycles, this.CPU.registers, this.CPU.flags, this.CPU.ime, this.Memory.ie, this.Memory.if);

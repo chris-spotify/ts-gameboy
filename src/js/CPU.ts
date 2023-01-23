@@ -60,13 +60,16 @@ export class CPU {
         const hCarryRes = (is8Bit) ? (a & 0xF) + (b & 0xF) + (includeCarry ? this.flags.carry : 0) : (a & 0xFFFFF) + (b & 0xFFFFF) + (includeCarry ? this.flags.carry : 0);
         this.flags.halfCarry = ((is8Bit && (hCarryRes & 0x10) === 0x10) || (!is8Bit && (hCarryRes & 0x100000) === 0x100000)) ? 1 : 0;
 
+        // handle over/underflow
+        const finalResult = is8Bit ? new uint8(result) : new uint16(result);
+
         // check for zero
-        this.flags.zero = (result === 0) ? 1 : 0;
+        this.flags.zero = (finalResult.value === 0) ? 1 : 0;
 
         // unset subtraction
         this.flags.subtraction = 0;
 
-        return is8Bit ? new uint8(result) : new uint16(result);
+        return finalResult;
     }
 
     sub(a: number, b: number, is8Bit: boolean, includeCarry: boolean){
@@ -79,13 +82,16 @@ export class CPU {
         const hCarryRes = (a & 0xF) - (b & 0xF) - (includeCarry ? this.flags.carry : 0);
         this.flags.halfCarry = ((hCarryRes & 0x10) === 0x10) ? 1 : 0;
 
+        // handle over/underflow
+        const finalResult = is8Bit ? new uint8(result) : new uint16(result);
+
         // check for zero
-        this.flags.zero = (result === 0) ? 1 : 0;
+        this.flags.zero = (finalResult.value === 0) ? 1 : 0;
 
         // unset subtraction
         this.flags.subtraction = 0;
 
-        return is8Bit ? new uint8(result) : new uint16(result);
+        return finalResult;
     }
 
     and(a: number, b: number){
@@ -1369,10 +1375,11 @@ export class CPU {
             },
             '21': () => {
                 this.pc.inc();
-                this.registers.hl.value = this.getPC16();
+                const val = this.getPC16();
+                this.registers.hl.value = val;
                 this.cycles+=3;
                 this.pc.inc(2);
-                if (this.debug) this.debugLogs.push('LD HL, nn');
+                if (this.debug) this.debugLogs.push(`LD HL, ${val.value.toString(16).padStart(4,'0')}`);
             },
             '31': () => {
                 this.pc.inc();
@@ -1420,10 +1427,11 @@ export class CPU {
             },
             '0E': () => {
                 this.pc.inc();
-                this.registers.c.value = this.getPCByte();
+                const val = this.getPCByte();
+                this.registers.c.value = val;
                 this.cycles+=2;
                 this.pc.inc();
-                if (this.debug) this.debugLogs.push('LD C, n');
+                if (this.debug) this.debugLogs.push(`LD C, ${val.value.toString(16).padStart(2,'0')}`);
             },
             '16': () => {
                 this.pc.inc();
@@ -1462,10 +1470,11 @@ export class CPU {
             },
             '3E': () => {
                 this.pc.inc();
-                this.registers.a.value = this.getPCByte();
+                const val = this.getPCByte();
+                this.registers.a.value = val;
                 this.cycles+=2;
                 this.pc.inc();
-                if (this.debug) this.debugLogs.push('LD A, n');
+                if (this.debug) this.debugLogs.push(`LD A, ${val.value.toString(16).padStart(2,'0')}`);
             },
             // LD (nn), SP
             '08': () => {
@@ -1532,6 +1541,13 @@ export class CPU {
                 this.cycles+=2;
                 this.pc.inc();
                 if (this.debug) this.debugLogs.push('LDH (C), A');
+            },
+            // LDH A, (C)
+            'F2': () => {
+                this.registers.a.value = this.memory.r8(new uint16(0xFF00 + this.registers.c.value.value));
+                this.cycles+=2;
+                this.pc.inc();
+                if (this.debug) this.debugLogs.push('LDH A, (C)');
             },
             // LDHL SP, d
             'F8': () => {
@@ -1723,7 +1739,7 @@ export class CPU {
                 } else {
                     this.cycles+=2;
                 }
-                if (this.debug) this.debugLogs.push('JR NZ, n');
+                if (this.debug) this.debugLogs.push(`JR NZ, ${val.value.toString(16).padStart(2,'0')}`);
             },
             // JR NC, n
             '30': () => {
@@ -1747,7 +1763,7 @@ export class CPU {
                 } else {
                     this.cycles+=2;
                 }
-                if (this.debug) this.debugLogs.push('JR Z, n');
+                if (this.debug) this.debugLogs.push(`JR Z, ${val.value.toString(16).padStart(2,'0')}`);
             },
             // JR C, n
             '38': () => {
