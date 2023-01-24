@@ -34,15 +34,15 @@ export class GPU {
         index: number;
     }> = new Array(40);
 
-    constructor(_parent: Gameboy){
+    constructor(_parent: Gameboy) {
         this.parent = _parent;
         this.reset();
     }
 
-    reset(){
+    reset() {
         this.context = this.parent.Screen.getContext('2d');
-        this.screen = this.context.createImageData(160,144);
-        this.screen.data.forEach((_,i,a) => a[i] = 255); // white screen
+        this.screen = this.context.createImageData(160, 144);
+        this.screen.data.forEach((_, i, a) => a[i] = 255); // white screen
         this.context.putImageData(this.screen, 0, 0); // push to canvas
         this.mode = 2;
         this.clock = 0;
@@ -66,19 +66,19 @@ export class GPU {
             object1: [255, 192, 96, 0],
         };
         // reset sprite object data
-        for (let i=0;i<40;i++) this.spriteData[i] = { y: -16, x: -8, tile: 0, palette: 0, flipX: false, flipY: false, priority: 0, index: i };
+        for (let i = 0; i < 40; i++) this.spriteData[i] = { y: -16, x: -8, tile: 0, palette: 0, flipX: false, flipY: false, priority: 0, index: i };
     }
 
-    draw(instructionCycles: number){
+    draw(instructionCycles: number) {
         this.clock += instructionCycles; // add cycles since last instruction to GPU clock
-        switch(this.mode){
+        switch (this.mode) {
             case 0: // hblank
-                if (this.clock >= 51){
+                if (this.clock >= 51) {
                     this.clock = 0; // restart GPU clock cycle
                     this.line++; // inc line number
-                    this.curScan+=640;
+                    this.curScan += 640;
 
-                    if (this.line === 143){ // last line, go to vblank and draw to canvas
+                    if (this.line === 143) { // last line, go to vblank and draw to canvas
                         this.mode = 1;
                         this.context.putImageData(this.screen, 0, 0);
                         this.parent.Memory.if = new uint8(this.parent.Memory.if.value | 1);
@@ -88,11 +88,11 @@ export class GPU {
                 }
                 break;
             case 1: // vblank
-                if (this.clock >= 114){ // there are 10 vblank lines before restarting the render
+                if (this.clock >= 114) { // there are 10 vblank lines before restarting the render
                     this.clock = 0; // restart GPU clock cycle
                     this.line++; // inc line number
 
-                    if (this.line > 153){ // restart render
+                    if (this.line > 153) { // restart render
                         this.mode = 2; // first step of the cycle is OAM Read
                         this.line = 0; // back to top
                         this.curScan = 0; // reset curScan
@@ -100,13 +100,13 @@ export class GPU {
                 }
                 break;
             case 2: // OAM Read
-                if (this.clock >= 20){
+                if (this.clock >= 20) {
                     this.clock = 0; // restart GPU clock cycle
                     this.mode = 3;  // jump to VRAM Read
                 }
                 break;
             case 3: // VRAM Read
-                if (this.clock >= 43){
+                if (this.clock >= 43) {
                     this.clock = 0; // restart GPU clock cycle
                     this.mode = 0; // jump to hblank (end of current scanline)
                     this.renderScanline(); // render scanline to screen buffer
@@ -115,68 +115,68 @@ export class GPU {
         };
     }
 
-    renderScanline(){
+    renderScanline() {
         const rowPixels = []; // buffer for storing background data, makes sprite drawing easier
-        if (this.LCDOn){
+        if (this.LCDOn) {
             // draw background
-            if (this.backgroundOn){
+            if (this.backgroundOn) {
                 let linebase = this.curScan; // curscan equivalent
                 let mapbase = this.backgroundMap ? 0x1C00 : 0x1800;
-                mapbase += ((((this.line + this.screenY)&255)>>3)<<5);
-                let y = (this.line + this.screenY)&7;
-                let x = this.screenX&7;
-                let t = (this.screenX>>3)&31;
+                mapbase += ((((this.line + this.screenY) & 255) >> 3) << 5);
+                let y = (this.line + this.screenY) & 7;
+                let x = this.screenX & 7;
+                let t = (this.screenX >> 3) & 31;
                 let w = 160;
 
-                if (this.backgroundTileset){
-                    let tile = this.parent.Memory.vram.m[mapbase+t].value; // direct memory access
-                    if (tile<128) tile = 256+tile;
+                if (this.backgroundTileset) {
+                    let tile = this.parent.Memory.vram.m[mapbase + t].value; // direct memory access
+                    if (tile < 128) tile = 256 + tile;
                     let tilerow = this.tileset[tile][y];
                     do {
-                        rowPixels[160-x] = tilerow[x];
+                        rowPixels[160 - x] = tilerow[x];
                         this.screen.data[linebase] = this.palette.background[tilerow[x]];
-                        this.screen.data[linebase+1] = this.palette.background[tilerow[x]];
-                        this.screen.data[linebase+2] = this.palette.background[tilerow[x]];
-                        this.screen.data[linebase+3] = 255; // fixed alpha
+                        this.screen.data[linebase + 1] = this.palette.background[tilerow[x]];
+                        this.screen.data[linebase + 2] = this.palette.background[tilerow[x]];
+                        this.screen.data[linebase + 3] = 255; // fixed alpha
                         x++;
-                        if (x===8){
-                            t = (t+1)&31;
+                        if (x === 8) {
+                            t = (t + 1) & 31;
                             x = 0;
-                            tile = this.parent.Memory.vram.m[mapbase+t].value;
-                            if (tile<128) tile=256+tile;
+                            tile = this.parent.Memory.vram.m[mapbase + t].value;
+                            if (tile < 128) tile = 256 + tile;
                             tilerow = this.tileset[tile][y];
-                            linebase+=4;
+                            linebase += 4;
                         }
                     } while (--w);
                 } else {
-                    let tilerow = this.tileset[this.parent.Memory.vram[mapbase+t].value][y];
+                    let tilerow = this.tileset[this.parent.Memory.vram[mapbase + t].value][y];
                     do {
-                        rowPixels[160-x] = tilerow[x];
+                        rowPixels[160 - x] = tilerow[x];
                         this.screen.data[linebase] = this.palette.background[tilerow[x]];
-                        this.screen.data[linebase+1] = this.palette.background[tilerow[x]];
-                        this.screen.data[linebase+2] = this.palette.background[tilerow[x]];
-                        this.screen.data[linebase+3] = 255; // fixed alpha
+                        this.screen.data[linebase + 1] = this.palette.background[tilerow[x]];
+                        this.screen.data[linebase + 2] = this.palette.background[tilerow[x]];
+                        this.screen.data[linebase + 3] = 255; // fixed alpha
                         x++;
-                        if (x===8){
-                            t = (t+1)&31;
+                        if (x === 8) {
+                            t = (t + 1) & 31;
                             x = 0;
-                            tilerow = this.tileset[this.parent.Memory.vram[mapbase+t].value][y];
+                            tilerow = this.tileset[this.parent.Memory.vram[mapbase + t].value][y];
                         }
-                        linebase+=4;
-                    } while(--w);
+                        linebase += 4;
+                    } while (--w);
                 }
             }
 
             // draw sprites
-            if (this.spritesOn){
+            if (this.spritesOn) {
                 let count = 0;
                 let linebase = this.curScan; //curscan equivalent
                 let tilerow;
-                for (let i=0;i<40;i++){
+                for (let i = 0; i < 40; i++) {
                     const sprite = this.spriteData[i];
-                    if (sprite.y <= this.line && (sprite.y+8) > this.line){
-                        if (sprite.flipY){
-                            tilerow = this.tileset[sprite.tile][7-(this.line - sprite.y)];
+                    if (sprite.y <= this.line && (sprite.y + 8) > this.line) {
+                        if (sprite.flipY) {
+                            tilerow = this.tileset[sprite.tile][7 - (this.line - sprite.y)];
                         } else {
                             tilerow = this.tileset[sprite.tile][this.line - sprite.y];
                         }
@@ -185,29 +185,29 @@ export class GPU {
 
                         linebase = (this.line * 160 + sprite.x) * 4;
 
-                        if (sprite.flipX){
-                            for (let x=0;x<8;x++){
-                                if (sprite.x + x >= 0 && sprite.x + x < 160){
-                                    if (tilerow[7-x] && (sprite.priority || !rowPixels[x])){
-                                        this.screen.data[linebase] = pal[tilerow[7-x]];
-                                        this.screen.data[linebase+1] = pal[tilerow[7-x]];
-                                        this.screen.data[linebase+2] = pal[tilerow[7-x]];
-                                        this.screen.data[linebase+3] = 255; // fixed alpha
+                        if (sprite.flipX) {
+                            for (let x = 0; x < 8; x++) {
+                                if (sprite.x + x >= 0 && sprite.x + x < 160) {
+                                    if (tilerow[7 - x] && (sprite.priority || !rowPixels[x])) {
+                                        this.screen.data[linebase] = pal[tilerow[7 - x]];
+                                        this.screen.data[linebase + 1] = pal[tilerow[7 - x]];
+                                        this.screen.data[linebase + 2] = pal[tilerow[7 - x]];
+                                        this.screen.data[linebase + 3] = 255; // fixed alpha
                                     }
                                 }
-                                linebase+=4;
+                                linebase += 4;
                             }
                         } else {
-                            for (let x=0;x<8;x++){
-                                if (sprite.x + x >= 0 && sprite.x + x < 160){
-                                    if (tilerow[x] && (sprite.priority || rowPixels[x])){
+                            for (let x = 0; x < 8; x++) {
+                                if (sprite.x + x >= 0 && sprite.x + x < 160) {
+                                    if (tilerow[x] && (sprite.priority || rowPixels[x])) {
                                         this.screen.data[linebase] = pal[tilerow[x]];
-                                        this.screen.data[linebase+1] = pal[tilerow[x]];
-                                        this.screen.data[linebase+2] = pal[tilerow[x]];
-                                        this.screen.data[linebase+3] = 255; // fixed alpha
+                                        this.screen.data[linebase + 1] = pal[tilerow[x]];
+                                        this.screen.data[linebase + 2] = pal[tilerow[x]];
+                                        this.screen.data[linebase + 3] = 255; // fixed alpha
                                     }
                                 }
-                                linebase+=4;
+                                linebase += 4;
                             }
                         }
                         count++;
@@ -218,26 +218,26 @@ export class GPU {
         }
     }
 
-    updateTile(addr: uint16, m: uint8[]){
+    updateTile(addr: uint16, m: uint8[]) {
         const base = (addr.value & 1) ? addr.value - 1 : addr.value;
         const tile = (base >> 4) & 511;
         const y = (base >> 1) & 7;
 
-        for (let x=0;x<8;x++){
-            const sx = 1 << (7-x);
-            this.tileset[tile][y][x] = ((m[base].value & sx) ? 1 : 0) + ((m[base+1].value & sx) ? 2 : 0);
+        for (let x = 0; x < 8; x++) {
+            const sx = 1 << (7 - x);
+            this.tileset[tile][y][x] = ((m[base].value & sx) ? 1 : 0) + ((m[base + 1].value & sx) ? 2 : 0);
         }
     }
 
-    updateSpriteData(addr: uint16, val: uint8){
+    updateSpriteData(addr: uint16, val: uint8) {
         const index = val.value >> 2;
-        if (index < 40){
-            switch (addr.value & 3){
+        if (index < 40) {
+            switch (addr.value & 3) {
                 case 0: // Y
-                    this.spriteData[index].y = val.value-16;
+                    this.spriteData[index].y = val.value - 16;
                     break;
                 case 1: // X
-                    this.spriteData[index].x = val.value-8;
+                    this.spriteData[index].x = val.value - 8;
                     break;
                 case 2: // tile
                     this.spriteData[index].tile = val.value;

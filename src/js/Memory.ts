@@ -62,7 +62,7 @@ export class Memory {
 
     bank0: Bank = { m: [], r: this.ranges[0], r8: this.bank0Read8.bind(this), r16: this.bank0Read16.bind(this), w8: this.write8, w16: this.write16 };
     bank1: Bank = { m: [], r: this.ranges[1], r8: this.read8, r16: this.read16, w8: this.write8, w16: this.write16 };
-    vram: Bank = { m: [], r: this.ranges[2], r8: this.read8, r16: this.read16, w8: this.vramWrite8.bind(this), w16: this.write16 };
+    vram: Bank = { m: [], r: this.ranges[2], r8: this.read8, r16: this.read16, w8: this.vramWrite8.bind(this), w16: this.vramWrite16.bind(this) };
     eram: Bank = { m: [], r: this.ranges[3], r8: this.read8, r16: this.read16, w8: this.write8, w16: this.write16 };
     wram: Bank = { m: [], r: this.ranges[4], r8: this.read8, r16: this.read16, w8: this.write8, w16: this.write16 };
     oam: Bank = { m: [], r: this.ranges[5], r8: this.oamRead8.bind(this), r16: this.read16, w8: this.oamWrite8.bind(this), w16: this.write16 };
@@ -71,32 +71,32 @@ export class Memory {
 
     banks = [this.bank0, this.bank1, this.vram, this.eram, this.wram, this.oam, this.mmio, this.zram];
 
-    constructor(_parent: Gameboy){
+    constructor(_parent: Gameboy) {
         this.parent = _parent;
         this.reset();
     }
 
-    reset(){
+    reset() {
         // clear banks back to zeroes
         for (const bank of this.banks) {
-            bank.m = new Array(bank.r[1] - bank.r[0] + 1).fill(new uint8(0)) as uint8[];   
+            bank.m = new Array(bank.r[1] - bank.r[0] + 1).fill(new uint8(0)) as uint8[];
         }
         // set interrupt enabled/flags
         this.ie = new uint8(0);
         this.if = new uint8(0);
     }
 
-    getSource(addr: uint16){
+    getSource(addr: uint16) {
         for (const bank of this.banks) {
             if (addr.value >= bank.r[0] && addr.value <= bank.r[1]) return bank;
         }
     }
 
-    bank0Read8(addr: uint16, source: uint8[]){
-        if (this.inBios){
-            if (addr.value < 0x100){
+    bank0Read8(addr: uint16, source: uint8[]) {
+        if (this.inBios) {
+            if (addr.value < 0x100) {
                 return new uint8(this.bios[addr.value]);
-            } else if (addr.value === 0x100){
+            } else if (addr.value === 0x100) {
                 console.log('LEAVING BIOS...');
                 this.inBios = false;
             }
@@ -105,11 +105,11 @@ export class Memory {
         return this.read8(addr, source);
     }
 
-    bank0Read16(addr: uint16, source: uint8[]){
-        if (this.inBios){
-            if (addr.value < 0x100){
+    bank0Read16(addr: uint16, source: uint8[]) {
+        if (this.inBios) {
+            if (addr.value < 0x100) {
                 return new uint16(this.bios[addr.value] + (this.bios[addr.value + 1] << 8));
-            } else if (addr.value === 0x100){
+            } else if (addr.value === 0x100) {
                 this.inBios = false;
             }
         }
@@ -117,30 +117,47 @@ export class Memory {
         return this.read16(addr, source);
     }
 
-    oamRead8(addr: uint16, source: uint8[]){
+    oamRead8(addr: uint16, source: uint8[]) {
         return this.read8(addr, source);
     }
 
-    oamWrite8(addr: uint16, source: uint8[], val: uint8){
+    oamWrite8(addr: uint16, source: uint8[], val: uint8) {
         this.parent.GPU.updateSpriteData(addr, val);
         return this.write8(addr, source, val);
     }
 
-    mmioRead8(addr: uint16, source: uint8[]){
+    mmioRead8(addr: uint16, source: uint8[]) {
         if (addr.value === 0x0F) return this.if; // interrupt flags
-        if (addr.value >= 0x40 && addr.value <= 0x45){
-            switch(addr.value-0x40){
+        if (addr.value >= 0x04 && addr.value <= 0x07) {
+            // timer updates
+            switch (addr.value) {
+                case 0x04:
+                    this.parent.Timer.div;
+                    break;
+                case 0x05:
+                    this.parent.Timer.tima;
+                    break;
+                case 0x06:
+                    this.parent.Timer.tma;
+                    break;
+                case 0x07:
+                    this.parent.Timer.tac;
+                    break;
+            };
+        }
+        if (addr.value >= 0x40 && addr.value <= 0x45) {
+            switch (addr.value - 0x40) {
                 case 0: // GPU flags
-                return new uint8((this.parent.GPU.LCDOn?0x80:0)|
-                    (this.parent.GPU.windowTileset?0x40:0)|
-                    (this.parent.GPU.windowOn?0x20:0)|
-                    ((this.parent.GPU.backgroundTileset === 1)?0x10:0)|
-                    ((this.parent.GPU.backgroundMap)?0x08:0)|
-                    (this.parent.GPU.spritesLarge?0x04:0)|
-                    (this.parent.GPU.spritesOn?0x02:0)|
-                    (this.parent.GPU.backgroundOn?0x01:0));
+                    return new uint8((this.parent.GPU.LCDOn ? 0x80 : 0) |
+                        (this.parent.GPU.windowTileset ? 0x40 : 0) |
+                        (this.parent.GPU.windowOn ? 0x20 : 0) |
+                        ((this.parent.GPU.backgroundTileset === 1) ? 0x10 : 0) |
+                        ((this.parent.GPU.backgroundMap) ? 0x08 : 0) |
+                        (this.parent.GPU.spritesLarge ? 0x04 : 0) |
+                        (this.parent.GPU.spritesOn ? 0x02 : 0) |
+                        (this.parent.GPU.backgroundOn ? 0x01 : 0));
                 case 1: // TODO: figure out what this is???
-                    return new uint8((this.parent.GPU.line === this.parent.GPU.raster?4:0)|this.parent.GPU.mode);
+                    return new uint8((this.parent.GPU.line === this.parent.GPU.raster ? 4 : 0) | this.parent.GPU.mode);
                 case 2: // screen Y
                     return new uint8(this.parent.GPU.screenY);
                 case 3: // screen X
@@ -154,19 +171,36 @@ export class Memory {
         return this.read8(addr, source);
     }
 
-    mmioWrite8(addr: uint16, source: uint8[], val: uint8){
+    mmioWrite8(addr: uint16, source: uint8[], val: uint8) {
         if (addr.value === 0x0F) return this.if = val;
-        if (addr.value >= 0x40 && addr.value <= 0x49){
-            switch(addr.value - 0x40){
+        if (addr.value >= 0x04 && addr.value <= 0x07) {
+            // timer updates
+            switch (addr.value) {
+                case 0x04:
+                    this.parent.Timer.div.value = 0;
+                    break;
+                case 0x05:
+                    this.parent.Timer.tima = val;
+                    break;
+                case 0x06:
+                    this.parent.Timer.tma = val;
+                    break;
+                case 0x07:
+                    this.parent.Timer.tac = new uint8(val.value & 7);
+                    break;
+            };
+        }
+        if (addr.value >= 0x40 && addr.value <= 0x49) {
+            switch (addr.value - 0x40) {
                 case 0: // GPU flags
-                    this.parent.GPU.LCDOn = (val.value&0x80)?1:0;
-                    this.parent.GPU.windowTileset = (val.value&0x40)?1:0;
-                    this.parent.GPU.windowOn = (val.value&0x20)?1:0;
-                    this.parent.GPU.backgroundTileset = (val.value&0x10)?1:0;
-                    this.parent.GPU.backgroundMap = (val.value&0x08)?1:0;
-                    this.parent.GPU.spritesLarge = (val.value&0x04)?1:0;
-                    this.parent.GPU.spritesOn = (val.value&0x02)?1:0;
-                    this.parent.GPU.backgroundOn = (val.value&0x01)?1:0;
+                    this.parent.GPU.LCDOn = (val.value & 0x80) ? 1 : 0;
+                    this.parent.GPU.windowTileset = (val.value & 0x40) ? 1 : 0;
+                    this.parent.GPU.windowOn = (val.value & 0x20) ? 1 : 0;
+                    this.parent.GPU.backgroundTileset = (val.value & 0x10) ? 1 : 0;
+                    this.parent.GPU.backgroundMap = (val.value & 0x08) ? 1 : 0;
+                    this.parent.GPU.spritesLarge = (val.value & 0x04) ? 1 : 0;
+                    this.parent.GPU.spritesOn = (val.value & 0x02) ? 1 : 0;
+                    this.parent.GPU.backgroundOn = (val.value & 0x01) ? 1 : 0;
                     break;
                 case 2: // screen Y
                     this.parent.GPU.screenY = val.value;
@@ -178,15 +212,15 @@ export class Memory {
                     this.parent.GPU.raster = val.value;
                     break;
                 case 6: // OAM DMA
-                    for (let i=0;i<160;i++){
+                    for (let i = 0; i < 160; i++) {
                         const v = this.r8(new uint16((val.value << 8) + i));
                         this.oam.m[i] = v;
                         this.parent.GPU.updateSpriteData(new uint16(i), v);
                     }
                     break;
                 case 7: // background palette
-                    for (let i=0;i<4;i++){
-                        switch((val.value >> (i*2))&3){
+                    for (let i = 0; i < 4; i++) {
+                        switch ((val.value >> (i * 2)) & 3) {
                             case 0:
                                 this.parent.GPU.palette.background[i] = 255;
                                 break;
@@ -203,8 +237,8 @@ export class Memory {
                     }
                     break;
                 case 8: // object0 palette
-                    for (let i=0;i<4;i++){
-                        switch((val.value >> (i*2))&3){
+                    for (let i = 0; i < 4; i++) {
+                        switch ((val.value >> (i * 2)) & 3) {
                             case 0:
                                 this.parent.GPU.palette.object0[i] = 255;
                                 break;
@@ -221,8 +255,8 @@ export class Memory {
                     }
                     break;
                 case 9: // object1 palette
-                for (let i=0;i<4;i++){
-                        switch((val.value >> (i*2))&3){
+                    for (let i = 0; i < 4; i++) {
+                        switch ((val.value >> (i * 2)) & 3) {
                             case 0:
                                 this.parent.GPU.palette.object1[i] = 255;
                                 break;
@@ -243,58 +277,64 @@ export class Memory {
         return this.write8(addr, source, val);
     }
 
-    zramRead8(addr: uint16, source: uint8[]){
+    zramRead8(addr: uint16, source: uint8[]) {
         if (addr.value === 0x7F) return this.ie; // interrupts enabled
         return this.read8(addr, source);
     }
 
-    zramWrite8(addr: uint16, source: uint8[], val: uint8){
+    zramWrite8(addr: uint16, source: uint8[], val: uint8) {
         if (addr.value === 0x7F) return this.ie = val;
         return this.write8(addr, source, val);
     }
 
-    vramWrite8(addr: uint16, source: uint8[], val: uint8){
+    vramWrite8(addr: uint16, source: uint8[], val: uint8) {
         this.write8(addr, source, val);
         this.parent.GPU.updateTile(addr, source);
     }
 
-    r8(addr: uint16){
+    vramWrite16(addr: uint16, source: uint8[], val: uint16) {
+        this.write16(addr, source, val);
+        this.parent.GPU.updateTile(addr, source);
+        this.parent.GPU.updateTile(new uint16(addr.value + 1), source); // update addr+1 in case we wrote two different tiles
+    }
+
+    r8(addr: uint16) {
         const source = this.getSource(addr);
         if (!source) return; // unaddressed memory
         return source.r8(new uint16(addr.value - source.r[0]), source.m);
     }
 
-    r16(addr: uint16){
+    r16(addr: uint16) {
         const source = this.getSource(addr);
         if (!source) return; //unaddressed memory
         return source.r16(new uint16(addr.value - source.r[0]), source.m);
     }
 
-    w8(addr: uint16, val: uint8){
+    w8(addr: uint16, val: uint8) {
         const source = this.getSource(addr);
         if (!source) return; // unaddressed memory
         return source.w8(new uint16(addr.value - source.r[0]), source.m, val);
     }
 
-    w16(addr: uint16, val: uint16){
+    w16(addr: uint16, val: uint16) {
         const source = this.getSource(addr);
         if (!source) return; // unaddressed memory
         return source.w16(new uint16(addr.value - source.r[0]), source.m, val);
     }
 
-    read8(addr: uint16, source: uint8[]){
+    read8(addr: uint16, source: uint8[]) {
         return new uint8(source[addr.value].value);
     }
 
-    read16(addr: uint16, source: uint8[]){
+    read16(addr: uint16, source: uint8[]) {
         return new uint16(source[addr.value].value + (source[addr.value + 1].value << 8));
     }
 
-    write8(addr: uint16, source: uint8[], value: uint8){
+    write8(addr: uint16, source: uint8[], value: uint8) {
         source[addr.value] = value;
     }
 
-    write16(addr: uint16, source: uint8[], value: uint16){
+    write16(addr: uint16, source: uint8[], value: uint16) {
         source[addr.value] = new uint8(value.value & 0xFF);
         source[addr.value + 1] = new uint8(value.value >> 8);
     }
