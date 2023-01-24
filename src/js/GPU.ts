@@ -240,7 +240,11 @@ export class GPU {
                     this.spriteData[index].x = val.value - 8;
                     break;
                 case 2: // tile
-                    this.spriteData[index].tile = val.value;
+                    if (this.spritesLarge) {
+                        this.spriteData[index].tile = val.value & 0xFE;
+                    } else {
+                        this.spriteData[index].tile = val.value;
+                    }
                     break;
                 case 3: // options
                     this.spriteData[index].palette = (val.value & 0x10) ? 1 : 0;

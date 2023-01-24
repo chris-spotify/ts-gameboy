@@ -67,7 +67,7 @@ export class Memory {
     wram: Bank = { m: [], r: this.ranges[4], r8: this.read8, r16: this.read16, w8: this.write8, w16: this.write16 };
     oam: Bank = { m: [], r: this.ranges[5], r8: this.oamRead8.bind(this), r16: this.read16, w8: this.oamWrite8.bind(this), w16: this.write16 };
     mmio: Bank = { m: [], r: this.ranges[6], r8: this.mmioRead8.bind(this), r16: this.read16, w8: this.mmioWrite8.bind(this), w16: this.write16 };
-    zram: Bank = { m: [], r: this.ranges[7], r8: this.read8, r16: this.read16, w8: this.write8, w16: this.write16 };
+    zram: Bank = { m: [], r: this.ranges[7], r8: this.zramRead8.bind(this), r16: this.read16, w8: this.zramWrite8.bind(this), w16: this.write16 };
 
     banks = [this.bank0, this.bank1, this.vram, this.eram, this.wram, this.oam, this.mmio, this.zram];
 
@@ -172,7 +172,7 @@ export class Memory {
     }
 
     mmioWrite8(addr: uint16, source: uint8[], val: uint8) {
-        if (addr.value === 0x0F) return this.if = val;
+        if (addr.value === 0x0F) this.if = val;
         if (addr.value >= 0x04 && addr.value <= 0x07) {
             // timer updates
             switch (addr.value) {
@@ -283,7 +283,7 @@ export class Memory {
     }
 
     zramWrite8(addr: uint16, source: uint8[], val: uint8) {
-        if (addr.value === 0x7F) return this.ie = val;
+        if (addr.value === 0x7F) this.ie = val;
         return this.write8(addr, source, val);
     }
 

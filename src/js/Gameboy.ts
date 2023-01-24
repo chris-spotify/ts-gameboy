@@ -68,23 +68,7 @@ export class Gameboy {
                     const opcode = this.Memory.r8(this.CPU.pc).value.toString(16).padStart(2, '0').toUpperCase();
                     if (!this.CPU.ops[opcode]) throw new Error(`Missing opcode: ${opcode}`);
                     this.CPU.ops[opcode]();
-                    if (this.CPU.debug && !this.Memory.inBios)
-                        console.log(`
-                        opcode: ${opcode}, ${this.CPU.debugLogs.pop()}, 
-                        flags: ${JSON.stringify(this.CPU.flags)},
-                        BC: ${this.CPU.registers.bc.value.value.toString(16).padStart(4, '0')},
-                        DE: ${this.CPU.registers.de.value.value.toString(16).padStart(4, '0')},
-                        HL: ${this.CPU.registers.hl.value.value.toString(16).padStart(4, '0')},
-                        SP: ${this.CPU.sp.value.toString(16).padStart(4, '0')},
-                        PC: ${this.CPU.pc.value.toString(16).padStart(4, '0')},
-                        A: ${this.CPU.registers.a.value.value.toString(16).padStart(2, '0')}, 
-                        B: ${this.CPU.registers.b.value.value.toString(16).padStart(2, '0')}, 
-                        C: ${this.CPU.registers.c.value.value.toString(16).padStart(2, '0')},
-                        D: ${this.CPU.registers.d.value.value.toString(16).padStart(2, '0')},
-                        E: ${this.CPU.registers.e.value.value.toString(16).padStart(2, '0')},
-                        H: ${this.CPU.registers.h.value.value.toString(16).padStart(2, '0')},
-                        L: ${this.CPU.registers.l.value.value.toString(16).padStart(2, '0')},
-                        `);
+                    this.printLogs(opcode);
                 }
 
                 // check interrupts
@@ -100,18 +84,23 @@ export class Gameboy {
                     if (rst40) {
                         this.Memory.if = new uint8(this.Memory.if.value & 0xFE); // unset flag
                         this.CPU.rst(0x40);
+                        this.printLogs('INT');
                     } else if (rst48) {
                         this.Memory.if = new uint8(this.Memory.if.value & 0xFD); // unset flag
                         this.CPU.rst(0x48);
+                        this.printLogs('INT');
                     } else if (rst50) {
                         this.Memory.if = new uint8(this.Memory.if.value & 0xFB); // unset flag
                         this.CPU.rst(0x50);
+                        this.printLogs('INT');
                     } else if (rst58) {
                         this.Memory.if = new uint8(this.Memory.if.value & 0xF7); // unset flag
                         this.CPU.rst(0x58);
+                        this.printLogs('INT');
                     } else if (rst60) {
                         this.Memory.if = new uint8(this.Memory.if.value & 0xEF); // unset flag
                         this.CPU.rst(0x60);
+                        this.printLogs('INT');
                     } else {
                         this.CPU.ime = 1; // enable interrupts again if we didn't hit a RST --> RETI
                     }
@@ -131,6 +120,26 @@ export class Gameboy {
             console.error(e, this.CPU.cycles, this.CPU.registers, this.CPU.flags, this.CPU.ime, this.Memory.ie, this.Memory.if);
             clearInterval(this.run);
         }
+    }
+
+    printLogs(opcode: string) {
+        if (this.CPU.debug && !this.Memory.inBios)
+            console.log(`
+                opcode: ${opcode}, ${this.CPU.debugLogs.pop()}, 
+                flags: ${JSON.stringify(this.CPU.flags)},
+                BC: ${this.CPU.registers.bc.value.value.toString(16).padStart(4, '0')},
+                DE: ${this.CPU.registers.de.value.value.toString(16).padStart(4, '0')},
+                HL: ${this.CPU.registers.hl.value.value.toString(16).padStart(4, '0')},
+                SP: ${this.CPU.sp.value.toString(16).padStart(4, '0')},
+                PC: ${this.CPU.pc.value.toString(16).padStart(4, '0')},
+                A: ${this.CPU.registers.a.value.value.toString(16).padStart(2, '0')}, 
+                B: ${this.CPU.registers.b.value.value.toString(16).padStart(2, '0')}, 
+                C: ${this.CPU.registers.c.value.value.toString(16).padStart(2, '0')},
+                D: ${this.CPU.registers.d.value.value.toString(16).padStart(2, '0')},
+                E: ${this.CPU.registers.e.value.value.toString(16).padStart(2, '0')},
+                H: ${this.CPU.registers.h.value.value.toString(16).padStart(2, '0')},
+                L: ${this.CPU.registers.l.value.value.toString(16).padStart(2, '0')},
+            `);
     }
 
     getFiredInterrupts(fired: uint8) {
