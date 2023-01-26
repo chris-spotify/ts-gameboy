@@ -22,7 +22,7 @@ export class GPU {
     palette: any;
     screenX: number;
     screenY: number;
-    tileset: Array<Array<Array<number>>> = new Array(512).fill(new Array(8).fill(new Array(8).fill(0)));
+    tileset: Array<Array<Array<number>>> = new Array(384).fill(new Array(8).fill(new Array(8).fill(0)));
     spriteData: Array<{
         y: number;
         x: number;
@@ -49,7 +49,7 @@ export class GPU {
         this.line = 0;
         this.curScan = 0;
         this.raster = 0;
-        this.tileset = new Array(512).fill(new Array(8).fill(new Array(8).fill(0)));
+        this.tileset = new Array(384).fill(new Array(8).fill(new Array(8).fill(0)));
         this.LCDOn = 0;
         this.spritesOn = 0;
         this.spritesLarge = 0;
@@ -120,50 +120,32 @@ export class GPU {
         if (this.LCDOn) {
             // draw background
             if (this.backgroundOn) {
-                let linebase = this.curScan; // curscan equivalent
-                let mapbase = this.backgroundMap ? 0x1C00 : 0x1800;
-                mapbase += ((((this.line + this.screenY) & 255) >> 3) << 5);
+                let mapOffset = (this.backgroundMap) ? 0x1C00 : 0x1800;
+                mapOffset += ((this.line + this.screenY) & 255) >> 3;
+                let lineOffset = this.screenX >> 3;
                 let y = (this.line + this.screenY) & 7;
                 let x = this.screenX & 7;
-                let t = (this.screenX >> 3) & 31;
-                let w = 160;
+                let canvasOffset = this.line * 160 * 4;
+                let tile = this.parent.Memory.vram.m[mapOffset + lineOffset].value;
+                if (!this.backgroundTileset && tile < 128) tile += 256;
 
-                if (this.backgroundTileset) {
-                    let tile = this.parent.Memory.vram.m[mapbase + t].value; // direct memory access
-                    if (tile < 128) tile = 256 + tile;
-                    let tilerow = this.tileset[tile][y];
-                    do {
-                        rowPixels[160 - x] = tilerow[x];
-                        this.screen.data[linebase] = this.palette.background[tilerow[x]];
-                        this.screen.data[linebase + 1] = this.palette.background[tilerow[x]];
-                        this.screen.data[linebase + 2] = this.palette.background[tilerow[x]];
-                        this.screen.data[linebase + 3] = 255; // fixed alpha
-                        x++;
-                        if (x === 8) {
-                            t = (t + 1) & 31;
-                            x = 0;
-                            tile = this.parent.Memory.vram.m[mapbase + t].value;
-                            if (tile < 128) tile = 256 + tile;
-                            tilerow = this.tileset[tile][y];
-                            linebase += 4;
-                        }
-                    } while (--w);
-                } else {
-                    let tilerow = this.tileset[this.parent.Memory.vram[mapbase + t].value][y];
-                    do {
-                        rowPixels[160 - x] = tilerow[x];
-                        this.screen.data[linebase] = this.palette.background[tilerow[x]];
-                        this.screen.data[linebase + 1] = this.palette.background[tilerow[x]];
-                        this.screen.data[linebase + 2] = this.palette.background[tilerow[x]];
-                        this.screen.data[linebase + 3] = 255; // fixed alpha
-                        x++;
-                        if (x === 8) {
-                            t = (t + 1) & 31;
-                            x = 0;
-                            tilerow = this.tileset[this.parent.Memory.vram[mapbase + t].value][y];
-                        }
-                        linebase += 4;
-                    } while (--w);
+                for (let i=0;i<160;i++){
+                    const color = this.palette.background[this.tileset[tile][y][x]];
+
+                    rowPixels[i] = color;
+                    this.screen.data[canvasOffset] = color;
+                    this.screen.data[canvasOffset+1] = color;
+                    this.screen.data[canvasOffset+2] = color;
+                    this.screen.data[canvasOffset+3] = 255; // alpha
+                    canvasOffset+=4;
+
+                    x++;
+                    if (x === 8){
+                        x=0;
+                        lineOffset = (lineOffset + 1) & 31;
+                        tile = this.parent.Memory.vram.m[mapOffset + lineOffset].value;
+                        if (!this.backgroundTileset && tile < 128) tile += 256;
+                    }
                 }
             }
 
@@ -219,13 +201,12 @@ export class GPU {
     }
 
     updateTile(addr: uint16, m: uint8[]) {
-        const base = (addr.value & 1) ? addr.value - 1 : addr.value;
-        const tile = (base >> 4) & 511;
-        const y = (base >> 1) & 7;
+        const tileIndex = addr.value >> 4; // 0-384
+        const y = (addr.value >> 1) & 7;
 
         for (let x = 0; x < 8; x++) {
             const sx = 1 << (7 - x);
-            this.tileset[tile][y][x] = ((m[base].value & sx) ? 1 : 0) + ((m[base + 1].value & sx) ? 2 : 0);
+            this.tileset[tileIndex][y][x] = ((m[addr.value].value & sx) ? 1 : 0) + ((m[addr.value + 1].value & sx) ? 2 : 0);
         }
     }
 

@@ -289,13 +289,12 @@ export class Memory {
 
     vramWrite8(addr: uint16, source: uint8[], val: uint8) {
         this.write8(addr, source, val);
-        this.parent.GPU.updateTile(addr, source);
+        if (addr.value < 0x1800) this.parent.GPU.updateTile(addr, source);
     }
 
     vramWrite16(addr: uint16, source: uint8[], val: uint16) {
         this.write16(addr, source, val);
-        this.parent.GPU.updateTile(addr, source);
-        this.parent.GPU.updateTile(new uint16(addr.value + 1), source); // update addr+1 in case we wrote two different tiles
+        if (addr.value < 0x1800) this.parent.GPU.updateTile(addr, source);
     }
 
     r8(addr: uint16) {

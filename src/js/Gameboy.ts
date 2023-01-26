@@ -24,12 +24,12 @@ export class Gameboy {
         input.addEventListener('change', () => { this.loadCartridge(input); });
         document.addEventListener('keydown', (key) => {
             if (key.keyCode === 32) {
-                this.CPU.debug = true;
+                // this.CPU.debug = true;
             }
         });
         document.addEventListener('keyup', (key) => {
             if (key.keyCode === 32) {
-                this.CPU.debug = false;
+                // this.CPU.debug = false;
             }
         });
     }
