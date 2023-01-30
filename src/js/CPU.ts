@@ -53,12 +53,19 @@ export class CPU {
     add(a: number, b: number, is8Bit: boolean, includeCarry: boolean) {
         const result = a + b + (includeCarry ? this.flags.carry : 0);
 
+        // check for halfCarry
+        if (is8Bit){
+            if (includeCarry){
+                this.flags.halfCarry = ((a & 0xF) + (b & 0xF) + (this.flags.carry) > 0xF) ? 1 : 0;
+            } else {
+                this.flags.halfCarry = ((result & 0xF) < (a & 0xF)) ? 1 : 0;
+            }
+        } else {
+            this.flags.halfCarry = ((a & 0xFFF) > (result & 0xFFF)) ? 1 : 0;
+        }
+
         // check for carry
         this.flags.carry = ((is8Bit && result > 0xFF) || (!is8Bit && result > 0xFFFF)) ? 1 : 0;
-
-        // check for halfCarry
-        const hCarryRes = (is8Bit) ? (a & 0xF) + (b & 0xF) + (includeCarry ? this.flags.carry : 0) : (a & 0xFFFFF) + (b & 0xFFFFF) + (includeCarry ? this.flags.carry : 0);
-        this.flags.halfCarry = ((is8Bit && (hCarryRes & 0x10) === 0x10) || (!is8Bit && (hCarryRes & 0x100000) === 0x100000)) ? 1 : 0;
 
         // handle over/underflow
         const finalResult = is8Bit ? new uint8(result) : new uint16(result);
@@ -75,12 +82,17 @@ export class CPU {
     sub(a: number, b: number, is8Bit: boolean, includeCarry: boolean) {
         const result = a - b - (includeCarry ? this.flags.carry : 0);
 
+        // check for halfCarry
+        if (is8Bit){
+            if (includeCarry){
+                this.flags.halfCarry = ((a & 0xF) - (b & 0xF) - (this.flags.carry) < 0) ? 1 : 0;
+            } else {
+                this.flags.halfCarry = ((a & 0xF) < (result & 0xF)) ? 1 : 0;
+            }
+        }
+
         // check for carry
         this.flags.carry = (result < 0) ? 1 : 0;
-
-        // check for halfCarry
-        const hCarryRes = (is8Bit) ? (a & 0xF) - (b & 0xF) - (includeCarry ? this.flags.carry : 0) : (a & 0xFFFFF) - (b & 0xFFFFF) - (includeCarry ? this.flags.carry : 0);
-        this.flags.halfCarry = ((is8Bit && (hCarryRes & 0x10) === 0x10) || (!is8Bit && (hCarryRes & 0x100000) === 0x100000)) ? 1 : 0;
 
         // handle over/underflow
         const finalResult = is8Bit ? new uint8(result) : new uint16(result);
@@ -1959,18 +1971,29 @@ export class CPU {
             },
             // DAA (idfk, ripped from cpp example found online) -- basically make hex values look like base 10 (0x9, 0xA --> 0x10, 0xB --> 0x11)
             '27': () => {
-                let val = this.registers.a.value.value;
-
-                if (((val & 0x0F) > 0x09) || (this.flags.halfCarry === 1)) {
-                    val += 0x06;
-                    this.flags.carry = (val > 0xFF) ? 1 : 0;
-                    this.flags.halfCarry = ((val & 0xF0) != 0) ? 1 : 0;
-                };
-                if ((val > 0x99) || (this.flags.halfCarry === 1)) {
-                    val += 0x60;
-                    this.flags.carry = 1;
+                if (!this.flags.subtraction) {
+                    if (this.flags.carry || this.registers.a.value.value > 0x99) {
+                        this.registers.a.value.value = (this.registers.a.value.value + 0x60) & 0xFF;
+                        this.flags.carry = 1;
+                    }
+                    if (this.flags.halfCarry || (this.registers.a.value.value & 0xF) > 0x9) {
+                        this.registers.a.value.value = (this.registers.a.value.value + 0x06) & 0xFF;
+                        this.flags.halfCarry = 0;
+                    }
                 }
-                this.registers.a.value = new uint8(val);
+                else if (this.flags.carry && this.flags.halfCarry) {
+                    this.registers.a.value.value = (this.registers.a.value.value + 0x9A) & 0xFF;
+                    this.flags.halfCarry = 0;
+                }
+                else if (this.flags.carry) {
+                    this.registers.a.value.value = (this.registers.a.value.value + 0xA0) & 0xFF;
+                }
+                else if (this.flags.halfCarry) {
+                    this.registers.a.value.value = (this.registers.a.value.value + 0xFA) & 0xFF;
+                    this.flags.halfCarry = 0;
+                }
+                this.flags.zero = (this.registers.a.value.value === 0) ? 1 : 0;
+
                 this.pc.inc();
                 this.cycles++;
                 if (this.debug) this.debugLogs.push('DAA');
