@@ -3642,7 +3642,7 @@ const states = [
         registerE: 0xFF,
         registerH: 0xFF,
         registerL: 0xFF,
-        registerHL: 0xFFFF,
+        registersHL: 0xFFFF,
         registersBC: 0xFFFF,
         registersDE: 0xFFFF,
         FZero: false,
@@ -3692,9 +3692,6 @@ const setState = (state) => {
     gameboy.CPU.registers.e.value.value = state.registerE;
     gameboy.CPU.registers.h.value.value = state.registerH;
     gameboy.CPU.registers.l.value.value = state.registerL;
-    gameboy.CPU.registers.bc.value.value = state.registersBC;
-    gameboy.CPU.registers.de.value.value = state.registersDE;
-    gameboy.CPU.registers.hl.value.value = state.registersHL;
     gameboy.CPU.flags.zero = state.FZero ? 1 : 0;
     gameboy.CPU.flags.carry = state.FCarry ? 1 : 0;
     gameboy.CPU.flags.halfCarry = state.FHalfCarry ? 1 : 0;
@@ -3708,8 +3705,7 @@ const assertEqual = (instruction, state, original) => {
         if (gameboy.CPU.registers.c.value.value !== state.registerC) throw new Error('c');
         if (gameboy.CPU.registers.d.value.value !== state.registerD) throw new Error('d');
         if (gameboy.CPU.registers.e.value.value !== state.registerE) throw new Error('e');
-        if (gameboy.CPU.registers.h.value.value !== state.registerH) throw new Error('h');
-        if (gameboy.CPU.registers.l.value.value !== state.registerL) throw new Error('l');
+        if (gameboy.CPU.registers.hl.value.value !== state.registersHL) throw new Error('hl');
         if (gameboy.CPU.flags.zero !== (state.FZero ? 1 : 0)) throw new Error('fz');
         if (gameboy.CPU.flags.carry !== (state.FCarry ? 1 : 0)) throw new Error('fc');
         if (gameboy.CPU.flags.halfCarry !== (state.FHalfCarry ? 1 : 0)) throw new Error('fh');
@@ -3726,8 +3722,6 @@ const logStates = (state, original) => {
         c: ${original.registerC},${state.registerC}, ${gameboy.CPU.registers.c.value.value},
         d: ${original.registerD}, ${state.registerD}, ${gameboy.CPU.registers.d.value.value},
         e: ${original.registerE}, ${state.registerE}, ${gameboy.CPU.registers.e.value.value},
-        h: ${original.registerH}, ${state.registerH}, ${gameboy.CPU.registers.h.value.value},
-        l: ${original.registerL}, ${state.registerL}, ${gameboy.CPU.registers.l.value.value},
         bc: ${original.registersBC}, ${state.registersBC}, ${gameboy.CPU.registers.bc.value.value},
         de: ${original.registersDE}, ${state.registersDE}, ${gameboy.CPU.registers.de.value.value},
         hl: ${original.registersHL}, ${state.registersHL}, ${gameboy.CPU.registers.hl.value.value},

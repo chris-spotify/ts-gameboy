@@ -199,7 +199,33 @@ export class CPU {
     }
 
     resetBit(bit: number, source: number) {
-        const result = source & (0xFF - bit);
+        let result;
+        switch(bit){
+            case 0:
+                result = source & 0xFE;
+                break;
+            case 1:
+                result = source & 0xFD;
+                break;
+            case 2:
+                result = source & 0xFB;
+                break;
+            case 3:
+                result = source & 0xF7;
+                break;
+            case 4:
+                result = source & 0xEF;
+                break;
+            case 5:
+                result = source & 0xDF;
+                break;
+            case 6:
+                result = source & 0xBF;
+                break;
+            case 7:
+                result = source & 0x7F;
+                break;
+        };
         return new uint8(result);
     }
 
@@ -244,12 +270,11 @@ export class CPU {
     }
 
     rotateLeft(a: number, throughCarry: boolean) {
-        const carryOut = a & 0x80;
-        const carryIn = throughCarry ? this.flags.carry : carryOut;
-        const result = (a << 1) + carryIn;
-
+        const newCarry = a > 0x7F ? 1 : 0;
+        if (!throughCarry) this.flags.carry = newCarry;
+        const result = ((a << 1) & 0xFF) | (this.flags.carry ? 1 : 0); // ((parentObj.registerB << 1) & 0xFF) | ((parentObj.FCarry) ? 1 : 0);
+        if (throughCarry) this.flags.carry = newCarry;
         this.flags.zero = (result === 0) ? 1 : 0;
-        this.flags.carry = carryOut ? 1 : 0;
         this.flags.subtraction = 0;
         this.flags.halfCarry = 0;
         return new uint8(result);
@@ -1962,7 +1987,7 @@ export class CPU {
             },
             // CPL
             '2F': () => {
-                this.registers.a.value = new uint8(~this.registers.a.value.value);
+                this.registers.a.value = new uint8(this.registers.a.value.value ^ 0xFF);
                 this.flags.subtraction = 1;
                 this.flags.halfCarry = 1;
                 this.pc.inc();

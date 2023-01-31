@@ -19,17 +19,17 @@ export class Gameboy {
         this.GPU = new GPU(this); // GPU first, initialize vram memory range
         this.Memory = new Memory(this); // Memory 2nd, CPU relies on Memory existing, Memory relies on GPU vram memory existing
         this.CPU = new CPU(this); // CPU last
-        // this.CPU.debug = true;
+        this.CPU.debug = true;
         const input = document.getElementById("game") as HTMLInputElement;
         input.addEventListener('change', () => { this.loadCartridge(input); });
         document.addEventListener('keydown', (key) => {
             if (key.keyCode === 32) {
-                // this.CPU.debug = true;
+                this.CPU.debug = true;
             }
         });
         document.addEventListener('keyup', (key) => {
             if (key.keyCode === 32) {
-                // this.CPU.debug = false;
+                this.CPU.debug = false;
             }
         });
     }
@@ -66,9 +66,9 @@ export class Gameboy {
                 } else {
                     // do next op code
                     const opcode = this.Memory.r8(this.CPU.pc).value.toString(16).padStart(2, '0').toUpperCase();
+                    this.printLogs(opcode);
                     if (!this.CPU.ops[opcode]) throw new Error(`Missing opcode: ${opcode}`);
                     this.CPU.ops[opcode]();
-                    this.printLogs(opcode);
                 }
 
                 // check interrupts

@@ -20,6 +20,7 @@ export class Memory {
         [0x8000, 0x9FFF], // vram
         [0xA000, 0xBFFF], // eram (swappable)
         [0xC000, 0xDFFF], // wram
+        [0xE000, 0xFDFF], // wram (shadow)
         [0xFE00, 0xFE9F], // oam
         [0xFF00, 0xFF7F], // mmio
         [0xFF80, 0xFFFF], // zram
@@ -65,11 +66,12 @@ export class Memory {
     vram: Bank = { m: [], r: this.ranges[2], r8: this.read8, r16: this.read16, w8: this.vramWrite8.bind(this), w16: this.vramWrite16.bind(this) };
     eram: Bank = { m: [], r: this.ranges[3], r8: this.read8, r16: this.read16, w8: this.write8, w16: this.write16 };
     wram: Bank = { m: [], r: this.ranges[4], r8: this.read8, r16: this.read16, w8: this.write8, w16: this.write16 };
-    oam: Bank = { m: [], r: this.ranges[5], r8: this.oamRead8.bind(this), r16: this.read16, w8: this.oamWrite8.bind(this), w16: this.write16 };
-    mmio: Bank = { m: [], r: this.ranges[6], r8: this.mmioRead8.bind(this), r16: this.read16, w8: this.mmioWrite8.bind(this), w16: this.write16 };
-    zram: Bank = { m: [], r: this.ranges[7], r8: this.zramRead8.bind(this), r16: this.read16, w8: this.zramWrite8.bind(this), w16: this.write16 };
+    wramShadow: Bank = { m: this.wram.m, r: this.ranges[5], r8: this.wram.r8, r16: this.wram.r16, w8: this.wram.w8, w16: this.wram.w16 };
+    oam: Bank = { m: [], r: this.ranges[6], r8: this.oamRead8.bind(this), r16: this.read16, w8: this.oamWrite8.bind(this), w16: this.write16 };
+    mmio: Bank = { m: [], r: this.ranges[7], r8: this.mmioRead8.bind(this), r16: this.read16, w8: this.mmioWrite8.bind(this), w16: this.write16 };
+    zram: Bank = { m: [], r: this.ranges[8], r8: this.zramRead8.bind(this), r16: this.read16, w8: this.zramWrite8.bind(this), w16: this.write16 };
 
-    banks = [this.bank0, this.bank1, this.vram, this.eram, this.wram, this.oam, this.mmio, this.zram];
+    banks = [this.bank0, this.bank1, this.vram, this.eram, this.wram, this.wramShadow, this.oam, this.mmio, this.zram];
 
     constructor(_parent: Gameboy) {
         this.parent = _parent;
@@ -79,7 +81,11 @@ export class Memory {
     reset() {
         // clear banks back to zeroes
         for (const bank of this.banks) {
-            bank.m = new Array(bank.r[1] - bank.r[0] + 1).fill(new uint8(0)) as uint8[];
+            if (bank !== this.wramShadow) {
+                bank.m = new Array(bank.r[1] - bank.r[0] + 1).fill(new uint8(0)) as uint8[];
+            } else {
+                bank.m = this.wram.m;
+            }
         }
         // set interrupt enabled/flags
         this.ie = new uint8(0);
